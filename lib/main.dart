@@ -5,6 +5,10 @@ import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 import 'screens/owner/owner_dashboard_screen.dart';
 import 'screens/owner/token_queue_screen.dart';
+import 'screens/owner/staff_screen.dart';
+import 'screens/owner/settings_screen.dart';
+import 'screens/owner/customer_list_screen.dart';
+import 'screens/owner/reports_screen.dart';
 import 'screens/customer/join_queue_screen.dart';
 import 'screens/customer/my_bookings_screen.dart';
 import 'models/shop_models.dart';
@@ -54,12 +58,7 @@ class _QCutHomeState extends State<QCutHome> {
     phone: '+919****3210', address: 'Near Bus Stand, Kollam',
   );
 
-  final List<Barber> _barbers = [
-    Barber(id: 'b1', name: 'Rajesh', order: 0),
-    Barber(id: 'b2', name: 'Faisal', order: 1),
-    Barber(id: 'b3', name: 'Sujith', order: 2),
-  ];
-
+  late final List<Barber> _barbers;
   late final List<TokenEntry> _serving;
   late final List<TokenEntry> _waiting;
   late final List<TokenEntry> _completed;
@@ -70,6 +69,11 @@ class _QCutHomeState extends State<QCutHome> {
   @override
   void initState() {
     super.initState();
+    _barbers = [
+      Barber(id: 'b1', name: 'Rajesh', order: 0),
+      Barber(id: 'b2', name: 'Faisal', order: 1),
+      Barber(id: 'b3', name: 'Sujith', order: 2),
+    ];
     _serving = [
       TokenEntry(id: '1', tokenNumber: 4, name: 'Ramesh Kumar', phone: '+919****3211', status: 'serving', staffName: 'Faisal'),
     ];
@@ -100,6 +104,7 @@ class _QCutHomeState extends State<QCutHome> {
     ];
   }
 
+  // --- Token Queue Actions ---
   void _callNext() => setState(() {
     HapticFeedback.mediumImpact();
     if (_serving.isNotEmpty) { _completed.insert(0, _serving.first.copyWith(status: 'completed')); _serving.clear(); }
@@ -119,14 +124,13 @@ class _QCutHomeState extends State<QCutHome> {
 
   void _cancel(TokenEntry t) => setState(() => _waiting.remove(t));
 
+  // --- Customer Actions ---
   void _customerJoin(String barberId, String name, String phone) => setState(() {
     final barber = _barbers.firstWhere((b) => b.id == barberId);
     _waiting.add(TokenEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       tokenNumber: _nextToken++,
-      name: name,
-      phone: phone,
-      status: 'waiting',
+      name: name, phone: phone, status: 'waiting',
       staffName: barber.name,
       date: DateTime.now().toIso8601String().substring(0, 10),
       createdAt: DateTime.now(),
@@ -134,7 +138,8 @@ class _QCutHomeState extends State<QCutHome> {
   });
 
   void _cancelBooking(Booking b) => setState(() {
-    _bookings[_bookings.indexOf(b)] = Booking(
+    final idx = _bookings.indexOf(b);
+    _bookings[idx] = Booking(
       id: b.id, tenantId: b.tenantId, customerName: b.customerName,
       phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName,
       date: b.date, timeSlot: b.timeSlot, status: 'cancelled',
@@ -142,6 +147,30 @@ class _QCutHomeState extends State<QCutHome> {
       createdAt: b.createdAt, updatedAt: DateTime.now(),
     );
   });
+
+  // --- Staff Actions ---
+  void _addBarber(String name) => setState(() {
+    _barbers.add(Barber(id: 'b${_barbers.length + 1}', name: name, order: _barbers.length));
+  });
+
+  void _toggleBarber(Barber b) => setState(() {
+    final idx = _barbers.indexOf(b);
+    _barbers[idx] = Barber(id: b.id, name: b.name, isActive: !b.isActive, photoURL: b.photoURL, order: b.order);
+  });
+
+  void _deleteBarber(String id) => setState(() {
+    _barbers.removeWhere((b) => b.id == id);
+  });
+
+  // --- Settings ---
+  void _saveSettings(Tenant updated) => setState(() {
+    // In production: save to Firestore
+  });
+
+  // --- Navigation helpers ---
+  void _push(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -152,26 +181,34 @@ class _QCutHomeState extends State<QCutHome> {
         // Tab 0: Owner Dashboard
         OwnerDashboardScreen(
           tenant: _demoTenant,
-          onOpenQueue: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TokenQueueScreen(
+          onOpenQueue: () => _push(TokenQueueScreen(
             serving: _serving, waiting: _waiting, completed: _completed,
             onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel,
-          ))),
-          onOpenBookings: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MyBookingsScreen(
-            bookings: _bookings, onCancel: _cancelBooking,
-          ))),
-          onOpenStaff: () {},
-          onOpenSettings: () {},
+          )),
+          onOpenBookings: () => _push(MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking)),
+          onOpenStaff: () => _push(StaffScreen(barbers: _barbers, onAdd: _addBarber, onToggle: _toggleBarber, onDelete: _deleteBarber)),
+          onOpenSettings: () => _push(SettingsScreen(tenant: _demoTenant, onSave: _saveSettings)),
+          onOpenReports: () => _push(ReportsScreen(
+            completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(),
+            waitingTokens: _waiting, servingTokens: _serving,
+          )),
         ),
-        // Tab 1: Queue
+        // Tab 1: Token Queue (owner view)
         TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed,
           onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel),
-        // Tab 2: Customer Join
-        JoinQueueScreen(
-          barbers: _barbers,
-          onJoin: _customerJoin,
+        // Tab 2: Customers (history + list)
+        CustomerListScreen(
+          completedTokens: _completed,
+          completedBookings: _bookings.where((b) => b.status == 'completed').toList(),
         ),
-        // Tab 3: Customer Bookings
-        MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking),
+        // Tab 3: Join Queue (customer-facing)
+        JoinQueueScreen(barbers: _barbers, onJoin: _customerJoin),
+        // Tab 4: Reports
+        ReportsScreen(
+          completedTokens: _completed,
+          completedBookings: _bookings.where((b) => b.status == 'completed').toList(),
+          waitingTokens: _waiting, servingTokens: _serving,
+        ),
       ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -179,8 +216,9 @@ class _QCutHomeState extends State<QCutHome> {
         destinations: [
           NavigationDestination(icon: const Icon(Icons.dashboard), label: l10n.dashboard),
           NavigationDestination(icon: const Icon(Icons.format_list_numbered), label: l10n.queue),
+          NavigationDestination(icon: const Icon(Icons.people), label: l10n.customers),
           NavigationDestination(icon: const Icon(Icons.qr_code), label: 'Join'),
-          NavigationDestination(icon: const Icon(Icons.calendar_month), label: l10n.bookings),
+          NavigationDestination(icon: const Icon(Icons.bar_chart), label: l10n.reports),
         ],
       ),
     );

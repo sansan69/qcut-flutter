@@ -8,6 +8,7 @@ class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenBookings;
   final VoidCallback onOpenStaff;
   final VoidCallback onOpenSettings;
+  final VoidCallback onOpenReports;
 
   const OwnerDashboardScreen({
     super.key,
@@ -16,6 +17,7 @@ class OwnerDashboardScreen extends StatelessWidget {
     required this.onOpenBookings,
     required this.onOpenStaff,
     required this.onOpenSettings,
+    required this.onOpenReports,
   });
 
   @override
@@ -40,12 +42,14 @@ class OwnerDashboardScreen extends StatelessWidget {
           _StatCard(label: 'Completed', value: '47', color: const Color(0xFF7C3AED)),
         ]),
         const SizedBox(height: 24),
+
         // Quick actions
         Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         _ActionCard(icon: Icons.format_list_numbered, title: 'Token Queue', subtitle: 'Now Serving / Waiting / Completed', onTap: onOpenQueue),
         _ActionCard(icon: Icons.calendar_month, title: 'Bookings', subtitle: 'Appointments & calendar', onTap: onOpenBookings),
         _ActionCard(icon: Icons.people, title: 'Staff', subtitle: 'Manage barbers & schedule', onTap: onOpenStaff),
+        _ActionCard(icon: Icons.bar_chart, title: 'Reports', subtitle: 'Daily stats & analytics', onTap: onOpenReports),
       ]),
     );
   }
