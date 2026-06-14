@@ -9,6 +9,7 @@ class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenStaff;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenReports;
+  final VoidCallback onSignOut;
 
   const OwnerDashboardScreen({
     super.key,
@@ -18,6 +19,7 @@ class OwnerDashboardScreen extends StatelessWidget {
     required this.onOpenStaff,
     required this.onOpenSettings,
     required this.onOpenReports,
+    required this.onSignOut,
   });
 
   @override
@@ -29,6 +31,7 @@ class OwnerDashboardScreen extends StatelessWidget {
         backgroundColor: colors.primary,
         foregroundColor: colors.onPrimary,
         actions: [
+          IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut, tooltip: 'Sign out'),
           IconButton(icon: const Icon(Icons.settings), onPressed: onOpenSettings),
         ],
       ),
