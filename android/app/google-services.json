@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "62682041153",
+    "project_id": "appointment-32f4a",
+    "storage_bucket": "appointment-32f4a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:62682041153:android:37d9e2544087052723efc0",
+        "android_client_info": {
+          "package_name": "com.kalki.qcut"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "62682041153-1d2ha5bfvnhbpbhcbiovjtsunjoo7gn4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kalki.qcut",
+            "certificate_hash": "26ba3f9732668661b961a5e1012aa63160d08e58"
+          }
+        },
+        {
+          "client_id": "62682041153-jv2qs3778foacn7o3kbrl5ao3i1jc0fp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.kalki.qcut",
+            "certificate_hash": "a882da90ef3ee9d04aef9d2e03b3b55095d4b456"
+          }
+        },
+        {
+          "client_id": "62682041153-4sqfbt8jjpp0gkdh1laeft5nuiu1heub.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAFIcL4CvjYDZFw-a1FKHvfJSYalcHguP0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "62682041153-4sqfbt8jjpp0gkdh1laeft5nuiu1heub.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -35,8 +35,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.19.0
-  # firebase_core: ^2.32.0      # Uncomment when Firebase is ready
-  # firebase_auth: ^4.16.0       # Uncomment when Firebase is ready
+  firebase_core: ^2.32.0
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.17.0
 
 dev_dependencies:
   flutter_test:

@@ -1,4 +1,4 @@
-package com.kalki.qcut_flutter
+package com.kalki.qcut
 
 import io.flutter.embedding.android.FlutterActivity
 
