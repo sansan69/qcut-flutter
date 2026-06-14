@@ -64,8 +64,8 @@ class _SubmissionCardState extends State<_SubmissionCard> {
   @override
   Widget build(BuildContext context) {
     final d = widget.data;
-    final submittedAt = d['submittedAt'] as dynamic;
-    final dateStr = submittedAt != null && submittedAt is dynamic
+    final submittedAt = d['submittedAt'];
+    final dateStr = submittedAt != null
         ? _formatTimestamp(submittedAt)
         : 'Recently';
 

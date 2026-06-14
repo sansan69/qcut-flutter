@@ -114,7 +114,8 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     // Confirmation screen
-    if (_step == 5) return _ConfirmationScreen(
+    if (_step == 5) {
+      return _ConfirmationScreen(
       service: _selectedService!.name,
       date: _formatDate(_selectedDate!),
       time: _selectedTimeSlot!,
@@ -122,6 +123,7 @@ class _BookingScreenState extends State<BookingScreen> {
       name: _nameCtrl.text.trim(),
       onDone: () => Navigator.pop(context),
     );
+    }
 
     return Scaffold(
       appBar: AppBar(

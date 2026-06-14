@@ -101,7 +101,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void dispose() {
     _sub?.cancel();
-    if (_auth is FirebaseAuthService) (_auth as FirebaseAuthService).dispose();
+    if (_auth is FirebaseAuthService) _auth.dispose();
     super.dispose();
   }
 
@@ -181,11 +181,13 @@ class _OwnerAppState extends State<_OwnerApp> {
     } catch (e) {
       debugPrint('Tenant lookup error: $e');
       // Fallback: demo tenant
-      if (mounted) setState(() => _tenant = Tenant(
-        id: widget.user.uid, name: 'My Shop', ownerEmail: email,
+      if (mounted) {
+        setState(() => _tenant = Tenant(
+          id: widget.user.uid, name: 'My Shop', ownerEmail: email,
         businessType: 'salon', planLevel: 0, bookingMode: 'token',
         status: 'active', phone: '', address: '',
       ));
+      }
     }
   }
 
@@ -242,7 +244,7 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
     return SuperAdminDashboard(
       tenants: _tenants,
       onCreateTenant: () => _push(CreateTenantScreen(
-        onCreate: (data) => widget.db.createTenant(data).catchError((_) {}),
+        onCreate: (data) => widget.db.createTenant(data).catchError((_) => ''),
       )),
       onTapTenant: (t) => _push(TenantDetailScreen(
         tenant: t,
@@ -299,7 +301,6 @@ class _QCutHomeState extends State<QCutHome> {
   List<Service> _services = [];
   Tenant? _tenant;
   int _nextToken = 1;
-  bool _seeded = false;
 
   String get _tenantId => widget.tenantId;
   SubscriptionPlan get _plan => _tenant?.plan ?? SubscriptionPlan.starter;
@@ -329,17 +330,17 @@ class _QCutHomeState extends State<QCutHome> {
 
     _tenantSub = widget.db.tenantStream(tid).listen((t) {
       if (!mounted) return;
-      setState(() { if (t != null) { _tenant = t; _seeded = true; } });
+      setState(() { if (t != null) { _tenant = t; } });
     });
 
     _barbersSub = widget.db.barbers(tid).listen((list) {
       if (!mounted) return;
-      setState(() { _barbers = list; _seeded = true; });
+      setState(() { _barbers = list; });
     });
 
     _servicesSub = widget.db.services(tid).listen((list) {
       if (!mounted) return;
-      setState(() { _services = list; _seeded = true; });
+      setState(() { _services = list; });
     });
 
     _tokensSub = widget.db.tokenQueue(tid).listen((list) {
@@ -350,14 +351,13 @@ class _QCutHomeState extends State<QCutHome> {
         _completed = list.where((t) => t.status != 'waiting' && t.status != 'serving').toList();
         if (list.isNotEmpty) {
           _nextToken = list.map((t) => t.tokenNumber).reduce((a, b) => a > b ? a : b) + 1;
-          _seeded = true;
         }
       });
     });
 
     _bookingsSub = widget.db.bookings(tid).listen((list) {
       if (!mounted) return;
-      setState(() { _bookings = list; _seeded = true; });
+      setState(() { _bookings = list; });
     });
   }
 

@@ -1,4 +1,4 @@
-/// Barber, Service, Tenant, SubscriptionPlan models
+// Barber, Service, Tenant, SubscriptionPlan models
 
 // ──────────────────────────────────────────────
 // Subscription Plans
