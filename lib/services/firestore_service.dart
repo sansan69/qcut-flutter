@@ -264,4 +264,82 @@ class FirestoreService {
       'rejectedAt': FieldValue.serverTimestamp(),
     });
   }
+
+  // ──────────────────────────────────────────────
+  // Database Reset (Super Admin only)
+  // ──────────────────────────────────────────────
+
+  /// Delete ALL tenants and their subcollections. Use with caution.
+  Future<Map<String, int>> resetAllData() async {
+    int tenantsDeleted = 0;
+    int subDocsDeleted = 0;
+    int submissionsDeleted = 0;
+
+    try {
+      // 1. Delete all onboarding submissions
+      final submissions = await _db.collection('onboarding_submissions').get();
+      for (final doc in submissions.docs) {
+        await doc.reference.delete();
+        submissionsDeleted++;
+      }
+
+      // 2. Get all tenants
+      final tenants = await _db.collection('tenants').get();
+
+      for (final tenantDoc in tenants.docs) {
+        final tid = tenantDoc.id;
+
+        // Delete subcollections: tokens/{date}/entries
+        final tokensCol = await _db.collection('tenants').doc(tid).collection('tokens').get();
+        for (final dateDoc in tokensCol.docs) {
+          final entries = await dateDoc.reference.collection('entries').get();
+          for (final entry in entries.docs) {
+            await entry.reference.delete();
+            subDocsDeleted++;
+          }
+          await dateDoc.reference.delete();
+        }
+
+        // Delete bookings
+        final bookings = await _db.collection('tenants').doc(tid).collection('bookings').get();
+        for (final doc in bookings.docs) {
+          await doc.reference.delete();
+          subDocsDeleted++;
+        }
+
+        // Delete barbers
+        final barbers = await _db.collection('tenants').doc(tid).collection('barbers').get();
+        for (final doc in barbers.docs) {
+          await doc.reference.delete();
+          subDocsDeleted++;
+        }
+
+        // Delete services
+        final services = await _db.collection('tenants').doc(tid).collection('services').get();
+        for (final doc in services.docs) {
+          await doc.reference.delete();
+          subDocsDeleted++;
+        }
+
+        // Delete settings
+        final settings = await _db.collection('tenants').doc(tid).collection('settings').get();
+        for (final doc in settings.docs) {
+          await doc.reference.delete();
+          subDocsDeleted++;
+        }
+
+        // Delete tenant doc itself
+        await tenantDoc.reference.delete();
+        tenantsDeleted++;
+      }
+    } catch (e) {
+      // Return partial counts on error
+    }
+
+    return {
+      'tenants': tenantsDeleted,
+      'subDocs': subDocsDeleted,
+      'submissions': submissionsDeleted,
+    };
+  }
 }

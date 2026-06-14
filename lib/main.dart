@@ -218,6 +218,7 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
   StreamSubscription<List<Map<String, dynamic>>>? _onboardingSub;
   List<Tenant> _tenants = [];
   List<Map<String, dynamic>> _onboarding = [];
+  bool _resetting = false;
 
   @override
   void initState() {
@@ -239,6 +240,29 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
 
   void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
 
+  Future<void> _resetDatabase() async {
+    setState(() => _resetting = true);
+    try {
+      final result = await widget.db.resetAllData();
+      if (mounted) {
+        setState(() => _resetting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Database reset: ${result['tenants']} tenants, ${result['subDocs']} sub-documents, ${result['submissions']} submissions deleted'),
+          backgroundColor: QCutColors.emerald,
+          duration: const Duration(seconds: 4),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _resetting = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Reset failed: $e'),
+          backgroundColor: QCutColors.red,
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SuperAdminDashboard(
@@ -257,6 +281,8 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
         onReject: (id) => widget.db.rejectOnboarding(id).catchError((_) {}),
       )),
       onSignOut: () => widget.auth.signOut(),
+      onResetDatabase: _resetDatabase,
+      isResetting: _resetting,
     );
   }
 }

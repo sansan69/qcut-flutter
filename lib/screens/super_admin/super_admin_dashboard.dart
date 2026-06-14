@@ -9,6 +9,8 @@ class SuperAdminDashboard extends StatelessWidget {
   final Function(Tenant) onTapTenant;
   final VoidCallback onViewOnboarding;
   final VoidCallback onSignOut;
+  final VoidCallback? onResetDatabase;
+  final bool isResetting;
 
   const SuperAdminDashboard({
     super.key,
@@ -17,6 +19,8 @@ class SuperAdminDashboard extends StatelessWidget {
     required this.onTapTenant,
     required this.onViewOnboarding,
     required this.onSignOut,
+    this.onResetDatabase,
+    this.isResetting = false,
   });
 
   @override
@@ -96,6 +100,45 @@ class SuperAdminDashboard extends StatelessWidget {
           )
         else
           ...tenants.map((t) => _TenantCard(tenant: t, onTap: () => onTapTenant(t))),
+
+        // ── Reset Database (danger zone) ──
+        if (onResetDatabase != null) ...[
+          const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 16),
+          Center(
+            child: isResetting
+                ? const Column(children: [
+                    SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
+                    SizedBox(height: 8),
+                    Text('Wiping database...', style: TextStyle(fontSize: 12, color: QCutColors.red)),
+                  ])
+                : OutlinedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: const Row(children: [Icon(Icons.warning_amber, color: QCutColors.red), SizedBox(width: 8), Text('Reset Database?')]),
+                          content: const Text('This will permanently delete ALL tenants, tokens, bookings, barbers, services, and onboarding submissions. This cannot be undone.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                            ElevatedButton(
+                              onPressed: () { Navigator.pop(ctx); onResetDatabase?.call(); },
+                              style: ElevatedButton.styleFrom(backgroundColor: QCutColors.red, foregroundColor: Colors.white),
+                              child: const Text('Yes, Delete Everything'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.delete_forever, size: 16),
+                    label: const Text('Reset Database'),
+                    style: OutlinedButton.styleFrom(foregroundColor: QCutColors.red, side: const BorderSide(color: QCutColors.red)),
+                  ),
+          ),
+          const SizedBox(height: 24),
+        ],
       ]),
     );
   }
