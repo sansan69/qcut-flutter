@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../models/onboarding_models.dart';
+import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../theme/app_theme.dart';
 
-/// 4-step onboarding — from QCUT Kotlin OnboardingScreen.kt
+/// 4-step onboarding — creates Firebase Auth account + submits to queue
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onBackToHome;
+  final AuthService? auth;
 
-  const OnboardingScreen({super.key, required this.onBackToHome});
+  const OnboardingScreen({super.key, required this.onBackToHome, this.auth});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -53,16 +55,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return _errors.isEmpty;
   }
 
-  void _submit() {
+  void _submit() async {
     if (!_validate()) return;
     setState(() { _loading = true; _submitted = true; });
-    // Submit to Firestore
-    FirestoreService().submitOnboarding(_form.toMap()).then((_) {
+
+    try {
+      // 1. Create Firebase Auth account for the owner
+      if (widget.auth != null && _form.ownerEmail.isNotEmpty && _form.password.isNotEmpty) {
+        try {
+          await widget.auth!.signUpWithEmail(
+            _form.ownerEmail.trim(),
+            _form.password,
+            displayName: _form.ownerName.isNotEmpty ? _form.ownerName.trim() : _form.businessName.trim(),
+          );
+        } catch (e) {
+          debugPrint('Auth account may already exist: $e');
+          // Try signing in instead
+          try { await widget.auth!.signInWithEmail(_form.ownerEmail.trim(), _form.password); }
+          catch (_) {}
+        }
+      }
+
+      // 2. Submit to Firestore onboarding queue
+      await FirestoreService().submitOnboarding(_form.toMap());
+
       setState(() => _loading = false);
-    }).catchError((e) {
+    } catch (e) {
       debugPrint('Onboarding submit error: $e');
       setState(() => _loading = false);
-    });
+    }
   }
 
   void _prev() => setState(() { if (_step > 0) _step--; });

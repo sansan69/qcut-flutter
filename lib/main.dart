@@ -114,7 +114,6 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    // Loading state while looking up tenant
     if (_loadingTenant) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -134,16 +133,21 @@ class _AppRootState extends State<AppRoot> {
       return QCutHome(auth: _auth, user: _user!, db: _db, tenantId: 'demo');
     }
 
-    // Not signed in → Landing
+    // Not signed in → Customer-centric Landing
     return LandingScreen(
-      onGetStarted: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context)),
+      onJoinQueue: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => JoinQueueScreen(barbers: const [], onJoin: (_, __, ___) {}, bookingUrl: '', shopName: ''),
       )),
-      onMyAppointments: () => Navigator.push(context, MaterialPageRoute(
+      onMyBookings: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => MyBookingsScreen(bookings: const [], onCancel: (_) {}),
       )),
       onAdminLogin: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => LoginScreen(auth: _auth),
+        builder: (_) => LoginScreen(
+          auth: _auth,
+          onRegisterShop: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context), auth: _auth),
+          )),
+        ),
       )),
     );
   }
