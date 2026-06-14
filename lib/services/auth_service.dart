@@ -1,7 +1,7 @@
 import 'dart:async';
 
 /// Auth result: who logged in and how
-enum AuthRole { owner, customer }
+enum AuthRole { owner, customer, superAdmin }
 
 class AuthUser {
   final String uid;
@@ -17,6 +17,7 @@ class AuthUser {
   });
 
   bool get isOwner => role == AuthRole.owner;
+  bool get isSuperAdmin => role == AuthRole.superAdmin;
 }
 
 /// Auth errors we handle gracefully
@@ -71,7 +72,8 @@ class DemoAuthService implements AuthService {
     if (email.isEmpty || password.length < 4) {
       throw AuthException('Invalid credentials');
     }
-    _currentUser = AuthUser(uid: 'demo-${email.hashCode}', email: email, role: AuthRole.owner);
+    final role = email == 'admin@qcut.in' ? AuthRole.superAdmin : AuthRole.owner;
+    _currentUser = AuthUser(uid: 'demo-${email.hashCode}', email: email, role: role);
     _controller.add(_currentUser);
     return _currentUser!;
   }

@@ -6,11 +6,13 @@ import '../../theme/app_theme.dart';
 class MyBookingsScreen extends StatelessWidget {
   final List<Booking> bookings;
   final Function(Booking) onCancel;
+  final VoidCallback? onNewBooking;
 
   const MyBookingsScreen({
     super.key,
     required this.bookings,
     required this.onCancel,
+    this.onNewBooking,
   });
 
   @override
@@ -23,6 +25,14 @@ class MyBookingsScreen extends StatelessWidget {
         title: const Text('My Bookings'),
         backgroundColor: QCutColors.navy,
         foregroundColor: Colors.white,
+        actions: [
+          if (onNewBooking != null)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: onNewBooking,
+              tooltip: 'New Booking',
+            ),
+        ],
       ),
       body: bookings.isEmpty
           ? Center(
@@ -30,6 +40,19 @@ class MyBookingsScreen extends StatelessWidget {
                 Icon(Icons.calendar_today, size: 64, color: QCutColors.charcoal.withValues(alpha: 0.2)),
                 const SizedBox(height: 16),
                 Text('No bookings yet', style: TextStyle(fontSize: 16, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+                if (onNewBooking != null) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: onNewBooking,
+                    icon: const Icon(Icons.add),
+                    label: const Text('New Booking'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: QCutColors.purple,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
               ]),
             )
           : ListView(padding: const EdgeInsets.all(16), children: [

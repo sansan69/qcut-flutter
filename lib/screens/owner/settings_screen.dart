@@ -7,8 +7,18 @@ import '../../theme/app_theme.dart';
 class SettingsScreen extends StatefulWidget {
   final Tenant tenant;
   final Function(Tenant) onSave;
+  final List<Service> services;
+  final Function(Service)? onAddService;
+  final Function(String)? onDeleteService;
 
-  const SettingsScreen({super.key, required this.tenant, required this.onSave});
+  const SettingsScreen({
+    super.key,
+    required this.tenant,
+    required this.onSave,
+    this.services = const [],
+    this.onAddService,
+    this.onDeleteService,
+  });
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -42,13 +52,17 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _openTimeCtrl = TextEditingController(text: '09:00');
     _closeTimeCtrl = TextEditingController(text: '21:00');
     _bookingMode = widget.tenant.bookingMode;
-    // Demo services
-    _services.addAll([
-      Service(id: 's1', name: 'Haircut', price: 150, durationMin: 30),
-      Service(id: 's2', name: 'Beard Trim', price: 80, durationMin: 15),
-      Service(id: 's3', name: 'Haircut + Beard', price: 200, durationMin: 45),
-      Service(id: 's4', name: 'Facial', price: 250, durationMin: 40),
-    ]);
+    // Use passed services, seed demos if empty
+    if (widget.services.isNotEmpty) {
+      _services.addAll(widget.services);
+    } else {
+      _services.addAll([
+        Service(id: 's1', name: 'Haircut', price: 150, durationMin: 30),
+        Service(id: 's2', name: 'Beard Trim', price: 80, durationMin: 15),
+        Service(id: 's3', name: 'Haircut + Beard', price: 200, durationMin: 45),
+        Service(id: 's4', name: 'Facial', price: 250, durationMin: 40),
+      ]);
+    }
   }
 
   @override
@@ -96,12 +110,14 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     final price = int.tryParse(_svcPriceCtrl.text) ?? 0;
     final dur = int.tryParse(_svcDurationCtrl.text) ?? 30;
     if (name.isEmpty) return;
+    final svc = Service(id: 's${DateTime.now().millisecondsSinceEpoch}', name: name, price: price, durationMin: dur);
     setState(() {
-      _services.add(Service(id: 's${_services.length + 1}', name: name, price: price, durationMin: dur));
+      _services.add(svc);
       _svcNameCtrl.clear();
       _svcPriceCtrl.clear();
       _svcDurationCtrl.clear();
     });
+    widget.onAddService?.call(svc);
     Navigator.pop(context);
   }
 
@@ -274,7 +290,11 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
             subtitle: Text('${s.durationMin} min • ₹${s.price}'),
             trailing: IconButton(
               icon: const Icon(Icons.delete_outline, size: 20, color: QCutColors.red),
-              onPressed: () => setState(() => _services.removeWhere((x) => x.id == s.id)),
+              onPressed: () {
+                final id = s.id;
+                setState(() => _services.removeWhere((x) => x.id == id));
+                widget.onDeleteService?.call(id);
+              },
             ),
           ),
         )),

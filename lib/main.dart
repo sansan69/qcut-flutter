@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'dart:async';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
@@ -18,9 +19,31 @@ import 'screens/owner/customer_list_screen.dart';
 import 'screens/owner/reports_screen.dart';
 import 'screens/customer/join_queue_screen.dart';
 import 'screens/customer/my_bookings_screen.dart';
+import 'screens/customer/booking_screen.dart';
+import 'screens/common/qr_screen.dart';
+import 'screens/super_admin/super_admin_dashboard.dart';
+import 'screens/super_admin/create_tenant_screen.dart';
+import 'screens/super_admin/tenant_detail_screen.dart';
+import 'screens/super_admin/onboarding_queue_screen.dart';
 import 'models/shop_models.dart';
 import 'models/token_entry.dart';
 import 'models/booking.dart';
+
+Future<void> initFirebase() async {
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: 'AIzaSy...B3Y0',
+        appId: '1:909538604832:android:4570f72010453de684cd45',
+        messagingSenderId: '909538604832',
+        projectId: 'appointment-32f4a',
+        storageBucket: 'appointment-32f4a.firebasestorage.app',
+      ),
+    );
+  } catch (e) {
+    debugPrint('Firebase init skipped (demo mode): $e');
+  }
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +53,6 @@ void main() async {
 
 class QCutApp extends StatelessWidget {
   const QCutApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -50,10 +72,8 @@ class QCutApp extends StatelessWidget {
   }
 }
 
-/// Root navigation — LandingScreen → everything else
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
-
   @override
   State<AppRoot> createState() => _AppRootState();
 }
@@ -80,23 +100,20 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
-    // If signed in as owner → go directly to dashboard
-    if (_user != null && _user!.isOwner) {
-      return QCutHome(auth: _auth, user: _user!, db: _db);
+    // Super admin → separate dashboard
+    if (_user != null && _user!.isSuperAdmin) {
+      return SuperAdminApp(auth: _auth, db: _db);
     }
-
-    // Customer signed in anonymously → take to join queue
+    // Owner or customer → normal app
     if (_user != null) {
       return QCutHome(auth: _auth, user: _user!, db: _db);
     }
-
-    // Not signed in → Landing page
     return LandingScreen(
       onGetStarted: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context)),
       )),
       onMyAppointments: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => MyBookingsScreen(bookings: [], onCancel: (_) {}),
+        builder: (_) => MyBookingsScreen(bookings: const [], onCancel: (_) {}),
       )),
       onAdminLogin: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => LoginScreen(auth: _auth),
@@ -105,9 +122,70 @@ class _AppRootState extends State<AppRoot> {
   }
 }
 
-// ──────────────────────────────────────────────
-// Main App (after auth)
-// ──────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// SUPER ADMIN APP
+// ═══════════════════════════════════════════════
+
+class SuperAdminApp extends StatefulWidget {
+  final AuthService auth;
+  final FirestoreService db;
+  const SuperAdminApp({super.key, required this.auth, required this.db});
+
+  @override
+  State<SuperAdminApp> createState() => _SuperAdminAppState();
+}
+
+class _SuperAdminAppState extends State<SuperAdminApp> {
+  StreamSubscription<List<Tenant>>? _tenantsSub;
+  StreamSubscription<List<Map<String, dynamic>>>? _onboardingSub;
+  List<Tenant> _tenants = [];
+  List<Map<String, dynamic>> _onboarding = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tenantsSub = widget.db.allTenants().listen((list) {
+      if (mounted) setState(() => _tenants = list);
+    });
+    _onboardingSub = widget.db.pendingOnboarding().listen((list) {
+      if (mounted) setState(() => _onboarding = list);
+    });
+  }
+
+  @override
+  void dispose() {
+    _tenantsSub?.cancel();
+    _onboardingSub?.cancel();
+    super.dispose();
+  }
+
+  void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+
+  @override
+  Widget build(BuildContext context) {
+    return SuperAdminDashboard(
+      tenants: _tenants,
+      onCreateTenant: () => _push(CreateTenantScreen(
+        onCreate: (data) => widget.db.createTenant(data).catchError((_) {}),
+      )),
+      onTapTenant: (t) => _push(TenantDetailScreen(
+        tenant: t,
+        onUpdatePlan: (level) => widget.db.updateTenantPlan(t.id, level).catchError((_) {}),
+        onUpdateStatus: (s) => widget.db.updateTenantStatus(t.id, s).catchError((_) {}),
+      )),
+      onViewOnboarding: () => _push(OnboardingQueueScreen(
+        submissions: _onboarding,
+        onApprove: (id, data, planLevel) => widget.db.approveOnboarding(id, data, planLevel).catchError((_) {}),
+        onReject: (id) => widget.db.updateTenantStatus(id, 'rejected').catchError((_) {}),
+      )),
+      onSignOut: () => widget.auth.signOut(),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// CLIENT APP (Owner / Customer)
+// ═══════════════════════════════════════════════
 
 class QCutHome extends StatefulWidget {
   final AuthService auth;
@@ -123,92 +201,241 @@ class QCutHome extends StatefulWidget {
 class _QCutHomeState extends State<QCutHome> {
   int _currentIndex = 0;
 
-  late final Tenant _demoTenant;
-  late final List<Barber> _barbers;
-  late final List<TokenEntry> _serving;
-  late final List<TokenEntry> _waiting;
-  late final List<TokenEntry> _completed;
-  late final List<Booking> _bookings;
-  int _nextToken = 8;
+  StreamSubscription<List<TokenEntry>>? _tokensSub;
+  StreamSubscription<List<Booking>>? _bookingsSub;
+  StreamSubscription<List<Barber>>? _barbersSub;
+  StreamSubscription<List<Service>>? _servicesSub;
+  StreamSubscription<Tenant?>? _tenantSub;
+
+  List<TokenEntry> _serving = [];
+  List<TokenEntry> _waiting = [];
+  List<TokenEntry> _completed = [];
+  List<Booking> _bookings = [];
+  List<Barber> _barbers = [];
+  List<Service> _services = [];
+  Tenant? _tenant;
+  int _nextToken = 1;
+  bool _usingFirestore = false;
+
+  String get _tenantId => _tenant?.id ?? widget.user.uid;
+  SubscriptionPlan get _plan => _tenant?.plan ?? SubscriptionPlan.starter;
 
   @override
   void initState() {
     super.initState();
-    _demoTenant = Tenant(
+    _initDemoData();
+    _connectFirestore();
+  }
+
+  void _initDemoData() {
+    _tenant = Tenant(
       id: widget.user.uid, name: 'My Shop', ownerEmail: widget.user.email ?? '',
-      businessType: 'salon', planLevel: 1, bookingMode: 'token',
+      businessType: 'salon', planLevel: 0, bookingMode: 'token',
       phone: '+919****3210', address: 'Kerala',
     );
     _barbers = [
-      Barber(id: 'b1', name: 'Rajesh', order: 0), Barber(id: 'b2', name: 'Faisal', order: 1), Barber(id: 'b3', name: 'Sujith', order: 2),
+      Barber(id: 'b1', name: 'Rajesh', order: 0),
+      Barber(id: 'b2', name: 'Faisal', order: 1),
     ];
-    _serving = [TokenEntry(id: '1', tokenNumber: 4, name: 'Ramesh Kumar', phone: '+919****3211', status: 'serving', staffName: 'Faisal')];
+    _services = [
+      Service(id: 's1', name: 'Haircut', price: 150, durationMin: 30, category: ServiceCategory.hair),
+      Service(id: 's2', name: 'Beard Trim', price: 80, durationMin: 15, category: ServiceCategory.beard),
+      Service(id: 's3', name: 'Haircut + Beard', price: 200, durationMin: 45, category: ServiceCategory.hair),
+    ];
+    _serving = [TokenEntry(id: '1', tokenNumber: 4, name: 'Ramesh Kumar', phone: '+919****3211', status: 'serving', staffName: 'Rajesh')];
     _waiting = [
-      TokenEntry(id: '2', tokenNumber: 5, name: 'Suresh Nair', status: 'waiting', staffName: 'Faisal'),
+      TokenEntry(id: '2', tokenNumber: 5, name: 'Suresh Nair', status: 'waiting', staffName: 'Rajesh'),
       TokenEntry(id: '3', tokenNumber: 6, name: 'Abdul Rahim', status: 'waiting', staffName: 'Faisal'),
-      TokenEntry(id: '4', tokenNumber: 7, name: 'Joseph Mathew', status: 'waiting', staffName: 'Rajesh'),
-      TokenEntry(id: '5', tokenNumber: 2, name: 'Vijay Menon', status: 'waiting', staffName: 'Rajesh'),
     ];
     _completed = [
-      TokenEntry(id: '6', tokenNumber: 1, name: 'Aravind', status: 'completed', staffName: 'Rajesh'),
-      TokenEntry(id: '7', tokenNumber: 2, name: 'Deepak', status: 'completed', staffName: 'Faisal'),
-      TokenEntry(id: '8', tokenNumber: 3, name: 'Harish', status: 'completed', staffName: 'Faisal'),
+      TokenEntry(id: '5', tokenNumber: 1, name: 'Aravind', status: 'completed', staffName: 'Rajesh'),
+      TokenEntry(id: '6', tokenNumber: 2, name: 'Deepak', status: 'completed', staffName: 'Faisal'),
     ];
-    _bookings = [
-      Booking(id: 'bk1', tenantId: widget.user.uid, customerName: 'Anil Kumar', phoneNumber: '+919****5555', barberId: 'b1', barberName: 'Rajesh', date: '2026-05-23', timeSlot: '10:30', status: 'confirmed', serviceType: 'Haircut + Beard', bookingCode: 'QC-101', durationMin: 45),
-      Booking(id: 'bk2', tenantId: widget.user.uid, customerName: 'Manoj Nair', phoneNumber: '+919****6666', barberId: 'b2', barberName: 'Faisal', date: '2026-05-23', timeSlot: '11:30', status: 'confirmed', serviceType: 'Beard Trim', bookingCode: 'QC-102', durationMin: 20),
-      Booking(id: 'bk3', tenantId: widget.user.uid, customerName: 'Sunil Varma', phoneNumber: '+919****7777', barberId: 'b1', barberName: 'Rajesh', date: '2026-05-21', timeSlot: '14:00', status: 'completed', serviceType: 'Haircut', bookingCode: 'QC-98', durationMin: 30),
-    ];
+    _bookings = [];
+    _nextToken = 7;
   }
 
-  void _callNext() => setState(() {
+  void _connectFirestore() {
+    final tid = _tenantId;
+    _barbersSub = widget.db.barbers(tid).listen((list) {
+      if (!mounted) return;
+      setState(() { if (list.isNotEmpty) { _barbers = list; _usingFirestore = true; } });
+    });
+    _servicesSub = widget.db.services(tid).listen((list) {
+      if (!mounted) return;
+      setState(() { if (list.isNotEmpty) { _services = list; _usingFirestore = true; } });
+    });
+    _tenantSub = widget.db.tenantStream(tid).listen((t) {
+      if (!mounted) return;
+      setState(() { if (t != null) _tenant = t; });
+    });
+    _tokensSub = widget.db.tokenQueue(tid).listen((list) {
+      if (!mounted) return;
+      setState(() {
+        _serving = list.where((t) => t.status == 'serving').toList();
+        _waiting = list.where((t) => t.status == 'waiting').toList();
+        _completed = list.where((t) => t.status == 'completed' || t.status == 'no-show' || t.status == 'cancelled').toList();
+        if (list.isNotEmpty) { _nextToken = list.map((t) => t.tokenNumber).reduce((a, b) => a > b ? a : b) + 1; _usingFirestore = true; }
+      });
+    });
+    _bookingsSub = widget.db.bookings(tid).listen((list) {
+      if (!mounted) return;
+      setState(() { if (list.isNotEmpty) { _bookings = list; _usingFirestore = true; } });
+    });
+  }
+
+  @override
+  void dispose() {
+    _tokensSub?.cancel(); _bookingsSub?.cancel(); _barbersSub?.cancel();
+    _servicesSub?.cancel(); _tenantSub?.cancel();
+    super.dispose();
+  }
+
+  // ── Plan helpers ──
+  bool get _canUseAppointments => _plan.appointments;
+  bool get _canUseQR => _plan.qrCode;
+  bool get _canSeeCustomerHistory => _plan.customerHistory;
+
+  // ── Actions ──
+  void _callNext() {
     HapticFeedback.mediumImpact();
-    if (_serving.isNotEmpty) { _completed.insert(0, _serving.first.copyWith(status: 'completed')); _serving.clear(); }
-    if (_waiting.isNotEmpty) { _serving.add(_waiting.first.copyWith(status: 'serving')); _waiting.removeAt(0); }
-  });
-  void _complete(TokenEntry t) => setState(() {
-    _serving.remove(t); _completed.insert(0, t.copyWith(status: 'completed'));
-    if (_waiting.isNotEmpty) { _serving.add(_waiting.first.copyWith(status: 'serving')); _waiting.removeAt(0); }
-  });
-  void _noShow(TokenEntry t) => setState(() {
-    _serving.remove(t); _completed.insert(0, t.copyWith(status: 'no-show'));
-    if (_waiting.isNotEmpty) { _serving.add(_waiting.first.copyWith(status: 'serving')); _waiting.removeAt(0); }
-  });
-  void _cancel(TokenEntry t) => setState(() => _waiting.remove(t));
-  void _customerJoin(String barberId, String name, String phone) => setState(() {
+    setState(() {
+      if (_serving.isNotEmpty) {
+        final done = _serving.first.copyWith(status: 'completed');
+        _completed.insert(0, done); _serving.clear();
+        _persistToken(done);
+      }
+      if (_waiting.isNotEmpty) {
+        final next = _waiting.first.copyWith(status: 'serving');
+        _serving.add(next); _waiting.removeAt(0);
+        _persistToken(next);
+      }
+    });
+  }
+
+  void _complete(TokenEntry t) {
+    setState(() { _serving.remove(t); final done = t.copyWith(status: 'completed'); _completed.insert(0, done); _persistToken(done); _autoNext(); });
+  }
+  void _noShow(TokenEntry t) {
+    setState(() { _serving.remove(t); final ns = t.copyWith(status: 'no-show'); _completed.insert(0, ns); _persistToken(ns); _autoNext(); });
+  }
+  void _cancel(TokenEntry t) {
+    setState(() { _waiting.remove(t); final c = t.copyWith(status: 'cancelled'); _completed.insert(0, c); _persistToken(c); });
+  }
+  void _autoNext() {
+    if (_serving.isEmpty && _waiting.isNotEmpty) {
+      final next = _waiting.first.copyWith(status: 'serving'); _serving.add(next); _waiting.removeAt(0); _persistToken(next);
+    }
+  }
+  void _customerJoin(String barberId, String name, String phone) {
     final barber = _barbers.firstWhere((b) => b.id == barberId);
-    _waiting.add(TokenEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), tokenNumber: _nextToken++, name: name, phone: phone, status: 'waiting', staffName: barber.name, date: DateTime.now().toIso8601String().substring(0, 10), createdAt: DateTime.now()));
-  });
-  void _cancelBooking(Booking b) => setState(() {
-    _bookings[_bookings.indexOf(b)] = Booking(id: b.id, tenantId: b.tenantId, customerName: b.customerName, phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName, date: b.date, timeSlot: b.timeSlot, status: 'cancelled', serviceType: b.serviceType, bookingCode: b.bookingCode, durationMin: b.durationMin, createdAt: b.createdAt, updatedAt: DateTime.now());
-  });
-  void _addBarber(String name) => setState(() => _barbers.add(Barber(id: 'b${_barbers.length + 1}', name: name, order: _barbers.length)));
-  void _toggleBarber(Barber b) => setState(() { final i = _barbers.indexOf(b); _barbers[i] = Barber(id: b.id, name: b.name, isActive: !b.isActive, photoURL: b.photoURL, order: b.order); });
-  void _deleteBarber(String id) => setState(() => _barbers.removeWhere((b) => b.id == id));
-  void _saveSettings(Tenant updated) => setState(() {});
+    final token = TokenEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), tokenNumber: _nextToken++, name: name, phone: phone, status: 'waiting', staffName: barber.name, date: DateTime.now().toIso8601String().substring(0, 10), createdAt: DateTime.now());
+    setState(() => _waiting.add(token));
+    _persistToken(token);
+  }
+  void _cancelBooking(Booking b) {
+    setState(() {
+      final i = _bookings.indexOf(b);
+      _bookings[i] = Booking(id: b.id, tenantId: b.tenantId, customerName: b.customerName, phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName, date: b.date, timeSlot: b.timeSlot, status: 'cancelled', serviceType: b.serviceType, bookingCode: b.bookingCode, durationMin: b.durationMin, createdAt: b.createdAt, updatedAt: DateTime.now());
+    });
+    _persistBooking(b);
+  }
+  void _addBooking(Booking b) {
+    setState(() => _bookings.insert(0, b)); _persistBooking(b);
+  }
+  void _addBarber(String name) {
+    final b = Barber(id: 'b${DateTime.now().millisecondsSinceEpoch}', name: name, order: _barbers.length);
+    setState(() => _barbers.add(b));
+    _persistBarber(b);
+  }
+  void _toggleBarber(Barber b) {
+    final u = Barber(id: b.id, name: b.name, isActive: !b.isActive, photoURL: b.photoURL, order: b.order, scheduleStart: b.scheduleStart, scheduleEnd: b.scheduleEnd, serviceIds: b.serviceIds);
+    setState(() { final i = _barbers.indexOf(b); _barbers[i] = u; });
+    _persistBarber(u);
+  }
+  void _deleteBarber(String id) {
+    setState(() => _barbers.removeWhere((b) => b.id == id));
+    widget.db.deleteBarber(_tenantId, id).catchError((_) {});
+  }
+  void _saveSettings(Tenant updated) => setState(() => _tenant = updated);
+  void _addService(Service s) {
+    setState(() => _services.add(s));
+    widget.db.addService(_tenantId, s).catchError((_) {});
+  }
+  void _deleteService(String id) {
+    setState(() => _services.removeWhere((s) => s.id == id));
+    widget.db.deleteService(_tenantId, id).catchError((_) {});
+  }
+
+  void _persistToken(TokenEntry t) {
+    if (!_usingFirestore) return;
+    widget.db.addToken(_tenantId, t).catchError((_) {});
+  }
+  void _persistBooking(Booking b) {
+    if (!_usingFirestore) return;
+    widget.db.updateBookingStatus(_tenantId, b.id, b.status).catchError((_) {});
+  }
+  void _persistBarber(Barber b) {
+    if (!_usingFirestore) return;
+    widget.db.addBarber(_tenantId, b).catchError((_) {});
+  }
 
   void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
   Future<void> _signOut() async => widget.auth.signOut();
 
+  String get _bookingUrl {
+    final name = _tenant?.name ?? 'my-shop';
+    final slug = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-').replaceAll(RegExp(r'-+'), '-').replaceAll(RegExp(r'^-|-$'), '');
+    return 'https://qcut.in/$slug';
+  }
+
+  /// Show plan upgrade prompt for gated features
+  void _showUpgradePrompt(String feature) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(children: [Icon(Icons.lock, color: QCutColors.purple), SizedBox(width: 8), Text('Plan Upgrade Required', style: TextStyle(color: QCutColors.navy))]),
+        content: Text('$feature is available on the Pro (₹499/mo) or Clinic (₹349/mo) plan. Upgrade your subscription to unlock this feature.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Maybe Later')),
+          ElevatedButton(
+            onPressed: () { Navigator.pop(ctx); /* Future: contact admin flow */ },
+            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.purple, foregroundColor: Colors.white),
+            child: const Text('Upgrade Now'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final plan = _plan;
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: [
         OwnerDashboardScreen(
-          tenant: _demoTenant,
+          tenant: _tenant!,
           onOpenQueue: () => _push(TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed, onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel)),
-          onOpenBookings: () => _push(MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking)),
+          onOpenBookings: () => _canUseAppointments
+              ? _push(MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking, onNewBooking: () => _push(BookingScreen(barbers: _barbers, services: _services, tenantId: _tenantId, tenantName: _tenant!.name, onBook: _addBooking))))
+              : _showUpgradePrompt('Appointment Booking'),
           onOpenStaff: () => _push(StaffScreen(barbers: _barbers, onAdd: _addBarber, onToggle: _toggleBarber, onDelete: _deleteBarber)),
-          onOpenSettings: () => _push(SettingsScreen(tenant: _demoTenant, onSave: _saveSettings)),
-          onOpenReports: () => _push(ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving)),
+          onOpenSettings: () => _push(SettingsScreen(tenant: _tenant!, services: _services, onSave: _saveSettings, onAddService: _addService, onDeleteService: _deleteService)),
+          onOpenReports: () => _push(ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving, barbers: _barbers, services: _services)),
+          onOpenQR: () => _canUseQR ? _push(ShopQRScreen(shopName: _tenant!.name, bookingUrl: _bookingUrl)) : _showUpgradePrompt('QR Booking Link'),
           onSignOut: _signOut,
+          plan: plan,
         ),
         TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed, onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel),
-        CustomerListScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList()),
-        JoinQueueScreen(barbers: _barbers, onJoin: _customerJoin),
-        ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving),
+        if (_canSeeCustomerHistory)
+          CustomerListScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList())
+        else
+          _UpgradePlaceholder(feature: 'Customer History', onUpgrade: () => _showUpgradePrompt('Customer History')),
+        JoinQueueScreen(barbers: _barbers, onJoin: _customerJoin, bookingUrl: _bookingUrl, shopName: _tenant!.name),
+        ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving, barbers: _barbers, services: _services),
       ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -217,9 +444,39 @@ class _QCutHomeState extends State<QCutHome> {
           NavigationDestination(icon: const Icon(Icons.dashboard), label: l10n.dashboard),
           NavigationDestination(icon: const Icon(Icons.format_list_numbered), label: l10n.queue),
           NavigationDestination(icon: const Icon(Icons.people), label: l10n.customers),
-          NavigationDestination(icon: const Icon(Icons.qr_code), label: 'Join'),
+          NavigationDestination(icon: const Icon(Icons.qr_code), label: l10n.join),
           NavigationDestination(icon: const Icon(Icons.bar_chart), label: l10n.reports),
         ],
+      ),
+    );
+  }
+}
+
+/// Placeholder screen when a feature is gated by plan
+class _UpgradePlaceholder extends StatelessWidget {
+  final String feature;
+  final VoidCallback onUpgrade;
+  const _UpgradePlaceholder({required this.feature, required this.onUpgrade});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.lock, size: 48, color: QCutColors.charcoal.withValues(alpha: 0.2)),
+          const SizedBox(height: 16),
+          Text('$feature Locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: QCutColors.charcoal.withValues(alpha: 0.4))),
+          const SizedBox(height: 8),
+          Text('Upgrade to Pro or Clinic plan to access $feature', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.3))),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: onUpgrade,
+            icon: const Icon(Icons.upgrade),
+            label: const Text('Upgrade Now'),
+            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          ),
+        ]),
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_models.dart';
 
-/// Owner dashboard — ported from QCUT Kotlin AdminDashboardScreen.kt
+/// Owner dashboard — shows plan badge and gated features
 class OwnerDashboardScreen extends StatelessWidget {
   final Tenant tenant;
   final VoidCallback onOpenQueue;
@@ -9,7 +9,9 @@ class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenStaff;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenReports;
+  final VoidCallback onOpenQR;
   final VoidCallback onSignOut;
+  final SubscriptionPlan plan;
 
   const OwnerDashboardScreen({
     super.key,
@@ -19,7 +21,9 @@ class OwnerDashboardScreen extends StatelessWidget {
     required this.onOpenStaff,
     required this.onOpenSettings,
     required this.onOpenReports,
+    required this.onOpenQR,
     required this.onSignOut,
+    this.plan = SubscriptionPlan.starter,
   });
 
   @override
@@ -31,6 +35,18 @@ class OwnerDashboardScreen extends StatelessWidget {
         backgroundColor: colors.primary,
         foregroundColor: colors.onPrimary,
         actions: [
+          // Plan badge
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: _planColor(plan).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(plan.name, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _planColor(plan))),
+            ]),
+          ),
           IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut, tooltip: 'Sign out'),
           IconButton(icon: const Icon(Icons.settings), onPressed: onOpenSettings),
         ],
@@ -38,23 +54,43 @@ class OwnerDashboardScreen extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         // Stats row
         Row(children: [
-          _StatCard(label: 'Waiting', value: '12', color: colors.primary),
+          _StatCard(label: 'Waiting', value: '—', color: colors.primary),
           const SizedBox(width: 12),
-          _StatCard(label: 'Serving', value: '3', color: const Color(0xFF10B981)),
+          _StatCard(label: 'Serving', value: '—', color: const Color(0xFF10B981)),
           const SizedBox(width: 12),
-          _StatCard(label: 'Completed', value: '47', color: const Color(0xFF7C3AED)),
+          _StatCard(label: 'Completed', value: '—', color: const Color(0xFF7C3AED)),
         ]),
         const SizedBox(height: 24),
 
-        // Quick actions
         Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         _ActionCard(icon: Icons.format_list_numbered, title: 'Token Queue', subtitle: 'Now Serving / Waiting / Completed', onTap: onOpenQueue),
-        _ActionCard(icon: Icons.calendar_month, title: 'Bookings', subtitle: 'Appointments & calendar', onTap: onOpenBookings),
+        _ActionCard(
+          icon: Icons.calendar_month,
+          title: 'Bookings',
+          subtitle: plan.appointments ? 'Appointments & calendar' : 'Upgrade to Pro/Clinic',
+          locked: !plan.appointments,
+          onTap: onOpenBookings,
+        ),
         _ActionCard(icon: Icons.people, title: 'Staff', subtitle: 'Manage barbers & schedule', onTap: onOpenStaff),
+        _ActionCard(
+          icon: Icons.qr_code,
+          title: 'Shop QR',
+          subtitle: plan.qrCode ? 'Display for customer scanning' : 'Upgrade to Pro/Clinic',
+          locked: !plan.qrCode,
+          onTap: onOpenQR,
+        ),
         _ActionCard(icon: Icons.bar_chart, title: 'Reports', subtitle: 'Daily stats & analytics', onTap: onOpenReports),
       ]),
     );
+  }
+
+  Color _planColor(SubscriptionPlan p) {
+    switch (p.level) {
+      case 1: return const Color(0xFF7C3AED); // Pro
+      case 2: return const Color(0xFF0284C7); // Clinic
+      default: return const Color(0xFF64748B); // Starter
+    }
   }
 }
 
@@ -83,17 +119,28 @@ class _StatCard extends StatelessWidget {
 class _ActionCard extends StatelessWidget {
   final IconData icon;
   final String title, subtitle;
+  final bool locked;
   final VoidCallback onTap;
-  const _ActionCard({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _ActionCard({required this.icon, required this.title, required this.subtitle, this.locked = false, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(subtitle),
+        leading: Icon(locked ? Icons.lock : icon, color: locked ? Colors.grey[400] : Theme.of(context).colorScheme.primary),
+        title: Row(children: [
+          Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: locked ? Colors.grey : null)),
+          if (locked) ...[
+            const SizedBox(width: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+              child: const Text('PRO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED))),
+            ),
+          ],
+        ]),
+        subtitle: Text(subtitle, style: TextStyle(color: locked ? Colors.grey[400] : null)),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

@@ -19,14 +19,6 @@ class FirestoreService {
         .map((snap) => snap.docs.map((d) => TokenEntry.fromMap(d.data(), d.id)).toList());
   }
 
-  Future<void> updateTokenStatus(String tenantId, String date, String tokenId, String status) {
-    return _db
-        .collection('tenants').doc(tenantId)
-        .collection('tokens').doc(date)
-        .collection('entries').doc(tokenId)
-        .update({'status': status, 'updatedAt': FieldValue.serverTimestamp()});
-  }
-
   Future<void> addToken(String tenantId, TokenEntry token) {
     final date = token.date.isEmpty ? DateTime.now().toIso8601String().substring(0, 10) : token.date;
     return _db
@@ -107,7 +99,7 @@ class FirestoreService {
     return _db
         .collection('tenants').doc(tenantId)
         .collection('services').doc(service.id)
-        .set({'name': service.name, 'durationMin': service.durationMin, 'price': service.price, 'isActive': service.isActive});
+        .set(service.toMap());
   }
 
   Future<void> deleteService(String tenantId, String serviceId) {
@@ -147,14 +139,74 @@ class FirestoreService {
     });
   }
 
-  // ── Super Admin: List Tenants ──
+  // ──────────────────────────────────────────────
+  // Super Admin
+  // ──────────────────────────────────────────────
+
+  /// All tenants for super admin dashboard
   Stream<List<Tenant>> allTenants() {
-    return _db.collection('tenants').snapshots().map(
+    return _db.collection('tenants').orderBy('createdAt', descending: true).snapshots().map(
       (snap) => snap.docs.map((d) => Tenant.fromMap(d.data(), d.id)).toList(),
     );
   }
 
+  /// Pending onboarding submissions
+  Stream<List<Map<String, dynamic>>> pendingOnboarding() {
+    return _db.collection('onboarding_submissions')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('submittedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map((d) => {'id': d.id, ...d.data()}).toList());
+  }
+
+  /// Create a new tenant (super admin action)
+  Future<String> createTenant(Map<String, dynamic> data) async {
+    final doc = await _db.collection('tenants').add({
+      ...data,
+      'status': 'active',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return doc.id;
+  }
+
+  /// Update tenant plan or status
+  Future<void> updateTenantPlan(String tenantId, int planLevel) {
+    return _db.collection('tenants').doc(tenantId).update({
+      'planLevel': planLevel,
+      'configuredAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   Future<void> updateTenantStatus(String tenantId, String status) {
     return _db.collection('tenants').doc(tenantId).update({'status': status});
+  }
+
+  /// Approve onboarding → create tenant automatically
+  Future<void> approveOnboarding(String submissionId, Map<String, dynamic> data, int planLevel) async {
+    // Create tenant
+    await _db.collection('tenants').add({
+      'name': data['businessName'] ?? '',
+      'ownerEmail': data['businessEmail'] ?? data['ownerEmail'] ?? '',
+      'ownerName': data['ownerName'] ?? '',
+      'ownerPhone': data['ownerPhone'] ?? '',
+      'businessType': data['businessType'] ?? 'salon',
+      'phone': data['businessPhone'] ?? '',
+      'address': data['street'] ?? '',
+      'district': data['district'] ?? '',
+      'city': data['city'] ?? '',
+      'bookingMode': data['bookingMode'] ?? 'token',
+      'planLevel': planLevel,
+      'status': 'active',
+      'openTime': data['openingTime'] ?? '09:00',
+      'closeTime': data['closingTime'] ?? '21:00',
+      'createdAt': FieldValue.serverTimestamp(),
+      'configuredAt': FieldValue.serverTimestamp(),
+    });
+    // Mark submission as approved
+    await _db.collection('onboarding_submissions').doc(submissionId).update({
+      'status': 'approved',
+      'planLevel': planLevel,
+      'approvedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

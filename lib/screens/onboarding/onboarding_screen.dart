@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/onboarding_models.dart';
+import '../../services/firestore_service.dart';
 import '../../theme/app_theme.dart';
 
 /// 4-step onboarding — from QCUT Kotlin OnboardingScreen.kt
@@ -56,8 +57,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _submit() {
     if (!_validate()) return;
     setState(() { _loading = true; _submitted = true; });
-    // In production: send to Firestore
-    Future.delayed(const Duration(seconds: 2), () {
+    // Submit to Firestore
+    FirestoreService().submitOnboarding(_form.toMap()).then((_) {
+      setState(() => _loading = false);
+    }).catchError((e) {
+      debugPrint('Onboarding submit error: $e');
       setState(() => _loading = false);
     });
   }

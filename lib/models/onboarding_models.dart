@@ -52,4 +52,32 @@ class OnboardingFormData {
   bool termsAccepted = false;
   bool privacyAccepted = false;
   bool dataProcessingConsent = false;
+
+  Map<String, dynamic> toMap() => {
+    'businessName': businessName,
+    'businessType': businessType,
+    'industryCategory': industryCategory,
+    'gstNumber': gstNumber,
+    'street': street,
+    'district': district,
+    'city': city,
+    'state': state,
+    'pinCode': pinCode,
+    'businessPhone': businessPhone,
+    'businessEmail': businessEmail,
+    'ownerName': ownerName,
+    'ownerEmail': ownerEmail,
+    'ownerPhone': ownerPhone,
+    'aadhaarNumber': aadhaarNumber,
+    'panNumber': panNumber,
+    'referralCode': referralCode,
+    'staffCount': staffCount,
+    'openingTime': openingTime,
+    'closingTime': closingTime,
+    'expectedMonthlyBookings': expectedMonthlyBookings,
+    'bookingMode': bookingMode,
+    'termsAccepted': termsAccepted,
+    'privacyAccepted': privacyAccepted,
+    'dataProcessingConsent': dataProcessingConsent,
+  };
 }

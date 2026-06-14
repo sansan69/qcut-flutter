@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/token_entry.dart';
 import '../../models/booking.dart';
+import '../../models/shop_models.dart';
 import '../../theme/app_theme.dart';
 
 /// Reports & Analytics — daily stats, trends, KPIs
@@ -9,6 +10,8 @@ class ReportsScreen extends StatelessWidget {
   final List<Booking> completedBookings;
   final List<TokenEntry> waitingTokens;
   final List<TokenEntry> servingTokens;
+  final List<Barber> barbers;
+  final List<Service> services;
 
   const ReportsScreen({
     super.key,
@@ -16,23 +19,32 @@ class ReportsScreen extends StatelessWidget {
     required this.completedBookings,
     required this.waitingTokens,
     required this.servingTokens,
+    this.barbers = const [],
+    this.services = const [],
   });
 
   int get _totalServed => completedTokens.length + completedBookings.length;
   int get _noShows => completedTokens.where((t) => t.status == 'no-show').length;
   double get _completionRate => _totalServed > 0 ? ((completedTokens.where((t) => t.status == 'completed').length + completedBookings.where((b) => b.status == 'completed').length) / _totalServed * 100) : 0;
 
+  int get _avgTicketSize {
+    if (services.isNotEmpty) {
+      return services.where((s) => s.isActive).fold<int>(0, (sum, s) => sum + s.price) ~/ services.where((s) => s.isActive).length;
+    }
+    return 150;
+  }
+
   // Simulated daily stats for the chart (last 7 days)
   List<_DayStat> get _weekStats {
     final now = DateTime.now();
     return List.generate(7, (i) {
       final d = now.subtract(Duration(days: 6 - i));
-      // Simulate data pattern
+      final tokensToday = 10 + i * 2 + (d.weekday == 6 ? 8 : 0) + (d.weekday == 7 ? 5 : 0);
       return _DayStat(
         day: _dayLabel(d.weekday),
-        tokens: 10 + i * 2 + (d.weekday == 6 ? 8 : 0) + (d.weekday == 7 ? 5 : 0),
+        tokens: tokensToday,
         bookings: 3 + (d.weekday == 6 ? 4 : 0),
-        revenue: (10 + i * 2 + (d.weekday == 6 ? 8 : 0)) * 150,
+        revenue: tokensToday * _avgTicketSize,
       );
     });
   }
@@ -131,12 +143,12 @@ class ReportsScreen extends StatelessWidget {
               const Text('Estimated Revenue', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: QCutColors.navy)),
               const SizedBox(height: 16),
               Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                _RevCard(label: 'Today', amount: _totalServed * 150, color: QCutColors.emerald),
+                _RevCard(label: 'Today', amount: _totalServed * _avgTicketSize, color: QCutColors.emerald),
                 _RevCard(label: 'This Week', amount: stats.fold<int>(0, (s, d) => s + d.revenue), color: QCutColors.navy),
                 _RevCard(label: 'Avg/Day', amount: stats.fold<int>(0, (s, d) => s + d.revenue) ~/ 7, color: QCutColors.purple),
               ]),
               const SizedBox(height: 16),
-              Text('*Based on ₹150 avg ticket size', style: TextStyle(fontSize: 11, color: QCutColors.charcoal.withValues(alpha: 0.4))),
+              Text('*Based on ₹$_avgTicketSize avg ticket size', style: TextStyle(fontSize: 11, color: QCutColors.charcoal.withValues(alpha: 0.4))),
             ]),
           ),
         ),

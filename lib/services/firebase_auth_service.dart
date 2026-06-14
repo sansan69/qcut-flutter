@@ -10,6 +10,9 @@ class FirebaseAuthService implements AuthService {
   StreamSubscription<fb.User?>? _fbSub;
   AuthUser? _currentUser;
 
+  // Super admin emails — in production, fetch from Firestore 'super_admins' collection
+  static const _superAdminEmails = {'admin@qcut.in'};
+
   FirebaseAuthService({fb.FirebaseAuth? auth})
       : _auth = auth ?? fb.FirebaseAuth.instance {
     _fbSub = _auth.authStateChanges().listen(_onFirebaseUser);
@@ -20,11 +23,15 @@ class FirebaseAuthService implements AuthService {
     if (fbUser == null) {
       _currentUser = null;
     } else {
+      final email = fbUser.email ?? '';
+      final role = _superAdminEmails.contains(email)
+          ? AuthRole.superAdmin
+          : fbUser.isAnonymous ? AuthRole.customer : AuthRole.owner;
       _currentUser = AuthUser(
         uid: fbUser.uid,
         email: fbUser.email,
         displayName: fbUser.displayName,
-        role: fbUser.isAnonymous ? AuthRole.customer : AuthRole.owner,
+        role: role,
       );
     }
     _controller.add(_currentUser);
