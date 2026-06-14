@@ -41,7 +41,7 @@ Future<void> initFirebase() async {
       ),
     );
   } catch (e) {
-    debugPrint('Firebase init skipped: $e');
+    debugPrint('Firebase init skipped (demo mode): $e');
   }
 }
 
@@ -83,7 +83,7 @@ class AppRoot extends StatefulWidget {
 }
 
 class _AppRootState extends State<AppRoot> {
-  final AuthService _auth = FirebaseAuthService();
+  late final AuthService _auth;
   final FirestoreService _db = FirestoreService();
   StreamSubscription<AuthUser?>? _sub;
   AuthUser? _user;
@@ -92,6 +92,13 @@ class _AppRootState extends State<AppRoot> {
   @override
   void initState() {
     super.initState();
+    // Try Firebase — fall back to demo if Firebase isn't initialized
+    try {
+      _auth = FirebaseAuthService();
+    } catch (e) {
+      debugPrint('Falling back to DemoAuthService: $e');
+      _auth = DemoAuthService();
+    }
     _user = _auth.currentUser;
     _sub = _auth.authStateChanges.listen((user) {
       setState(() { _user = user; _loadingTenant = false; });
@@ -101,7 +108,7 @@ class _AppRootState extends State<AppRoot> {
   @override
   void dispose() {
     _sub?.cancel();
-    if (_auth is FirebaseAuthService) _auth.dispose();
+    _auth.dispose();
     super.dispose();
   }
 

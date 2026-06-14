@@ -51,6 +51,9 @@ abstract class AuthService {
 
   /// Sign out current user
   Future<void> signOut();
+
+  /// Clean up resources
+  void dispose();
 }
 
 // ──────────────────────────────────────────────
@@ -111,5 +114,6 @@ class DemoAuthService implements AuthService {
     _controller.add(null);
   }
 
+  @override
   void dispose() => _controller.close();
 }

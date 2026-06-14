@@ -97,6 +97,7 @@ class FirebaseAuthService implements AuthService {
     role: u.isAnonymous ? AuthRole.customer : AuthRole.owner,
   );
 
+  @override
   void dispose() { _fbSub?.cancel(); _controller.close(); }
 }
 
