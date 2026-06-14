@@ -123,6 +123,53 @@ class FirestoreService {
     });
   }
 
+  /// Look up tenant by owner email — used when owner logs in
+  Future<Tenant?> getTenantByEmail(String email) async {
+    final snap = await _db.collection('tenants')
+        .where('ownerEmail', isEqualTo: email)
+        .where('status', isEqualTo: 'active')
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return null;
+    return Tenant.fromMap(snap.docs.first.data(), snap.docs.first.id);
+  }
+
+  /// Update tenant document fields
+  Future<void> updateTenant(String tenantId, Map<String, dynamic> data) {
+    return _db.collection('tenants').doc(tenantId).update(data);
+  }
+
+  /// Save tenant settings (name, bookingMode, address etc) to tenant doc
+  Future<void> saveTenantDoc(String tenantId, Tenant tenant) {
+    return _db.collection('tenants').doc(tenantId).set(tenant.toMap(), SetOptions(merge: true));
+  }
+
+  /// Create a default tenant for a newly registered owner
+  Future<String> createTenantForOwner({
+    required String name,
+    required String ownerEmail,
+    String ownerName = '',
+    String phone = '',
+    String businessType = 'salon',
+  }) async {
+    final doc = await _db.collection('tenants').add({
+      'name': name,
+      'ownerEmail': ownerEmail,
+      'ownerName': ownerName,
+      'phone': phone,
+      'businessType': businessType,
+      'bookingMode': 'token',
+      'planLevel': 0, // Starter by default
+      'status': 'active',
+      'openTime': '09:00',
+      'closeTime': '21:00',
+      'address': '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'configuredAt': FieldValue.serverTimestamp(),
+    });
+    return doc.id;
+  }
+
   Future<void> saveTenantSettings(String tenantId, Map<String, dynamic> settings) {
     return _db
         .collection('tenants').doc(tenantId)
@@ -207,6 +254,14 @@ class FirestoreService {
       'status': 'approved',
       'planLevel': planLevel,
       'approvedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Reject an onboarding submission
+  Future<void> rejectOnboarding(String submissionId) {
+    return _db.collection('onboarding_submissions').doc(submissionId).update({
+      'status': 'rejected',
+      'rejectedAt': FieldValue.serverTimestamp(),
     });
   }
 }

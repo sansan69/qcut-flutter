@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Tenants ──
+    match /tenants/{tenantId} {
+      // Owner can read/write their own tenant doc
+      allow read, write: if request.auth != null
+        && (resource.data.ownerEmail == request.auth.token.email
+            || request.auth.token.email in ['admin@qcut.in']);
+
+      // ── Tokens (subcollection) ──
+      match /tokens/{date}/entries/{entryId} {
+        allow read, write: if request.auth != null;
+      }
+
+      // ── Bookings ──
+      match /bookings/{bookingId} {
+        allow read, write: if request.auth != null;
+      }
+
+      // ── Barbers ──
+      match /barbers/{barberId} {
+        allow read, write: if request.auth != null;
+      }
+
+      // ── Services ──
+      match /services/{serviceId} {
+        allow read, write: if request.auth != null;
+      }
+
+      // ── Settings ──
+      match /settings/{settingId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+
+    // ── Onboarding Submissions ──
+    match /onboarding_submissions/{submissionId} {
+      allow read, write: if request.auth != null
+        && request.auth.token.email in ['admin@qcut.in'];
+      allow create: if true; // Anyone can submit onboarding
+    }
+  }
+}

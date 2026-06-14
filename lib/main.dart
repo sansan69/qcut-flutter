@@ -41,7 +41,7 @@ Future<void> initFirebase() async {
       ),
     );
   } catch (e) {
-    debugPrint('Firebase init skipped (demo mode): $e');
+    debugPrint('Firebase init skipped: $e');
   }
 }
 
@@ -72,6 +72,10 @@ class QCutApp extends StatelessWidget {
   }
 }
 
+// ═══════════════════════════════════════════════
+// Root — routes to Super Admin / Owner / Customer
+// ═══════════════════════════════════════════════
+
 class AppRoot extends StatefulWidget {
   const AppRoot({super.key});
   @override
@@ -83,12 +87,15 @@ class _AppRootState extends State<AppRoot> {
   final FirestoreService _db = FirestoreService();
   StreamSubscription<AuthUser?>? _sub;
   AuthUser? _user;
+  bool _loadingTenant = false;
 
   @override
   void initState() {
     super.initState();
     _user = _auth.currentUser;
-    _sub = _auth.authStateChanges.listen((user) => setState(() => _user = user));
+    _sub = _auth.authStateChanges.listen((user) {
+      setState(() { _user = user; _loadingTenant = false; });
+    });
   }
 
   @override
@@ -100,14 +107,27 @@ class _AppRootState extends State<AppRoot> {
 
   @override
   Widget build(BuildContext context) {
+    // Loading state while looking up tenant
+    if (_loadingTenant) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     // Super admin → separate dashboard
     if (_user != null && _user!.isSuperAdmin) {
       return SuperAdminApp(auth: _auth, db: _db);
     }
-    // Owner or customer → normal app
-    if (_user != null) {
-      return QCutHome(auth: _auth, user: _user!, db: _db);
+
+    // Owner → find or create tenant, then show dashboard
+    if (_user != null && _user!.isOwner) {
+      return _OwnerApp(auth: _auth, db: _db, user: _user!);
     }
+
+    // Customer (anonymous) → normal app
+    if (_user != null) {
+      return QCutHome(auth: _auth, user: _user!, db: _db, tenantId: 'demo');
+    }
+
+    // Not signed in → Landing
     return LandingScreen(
       onGetStarted: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context)),
@@ -119,6 +139,62 @@ class _AppRootState extends State<AppRoot> {
         builder: (_) => LoginScreen(auth: _auth),
       )),
     );
+  }
+}
+
+/// Wraps owner tenant lookup — finds or auto-creates tenant doc
+class _OwnerApp extends StatefulWidget {
+  final AuthService auth;
+  final FirestoreService db;
+  final AuthUser user;
+  const _OwnerApp({required this.auth, required this.db, required this.user});
+
+  @override
+  State<_OwnerApp> createState() => _OwnerAppState();
+}
+
+class _OwnerAppState extends State<_OwnerApp> {
+  Tenant? _tenant;
+
+  @override
+  void initState() {
+    super.initState();
+    _findOrCreateTenant();
+  }
+
+  Future<void> _findOrCreateTenant() async {
+    final email = widget.user.email ?? '';
+    try {
+      // Look up existing tenant
+      var tenant = await widget.db.getTenantByEmail(email);
+
+      // If not found, auto-create with Starter plan
+      if (tenant == null) {
+        final tid = await widget.db.createTenantForOwner(
+          name: widget.user.displayName ?? 'My Shop',
+          ownerEmail: email,
+        );
+        tenant = await widget.db.getTenant(tid);
+      }
+
+      if (mounted) setState(() => _tenant = tenant);
+    } catch (e) {
+      debugPrint('Tenant lookup error: $e');
+      // Fallback: demo tenant
+      if (mounted) setState(() => _tenant = Tenant(
+        id: widget.user.uid, name: 'My Shop', ownerEmail: email,
+        businessType: 'salon', planLevel: 0, bookingMode: 'token',
+        status: 'active', phone: '', address: '',
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_tenant == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    return QCutHome(auth: widget.auth, user: widget.user, db: widget.db, tenantId: _tenant!.id);
   }
 }
 
@@ -176,7 +252,7 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
       onViewOnboarding: () => _push(OnboardingQueueScreen(
         submissions: _onboarding,
         onApprove: (id, data, planLevel) => widget.db.approveOnboarding(id, data, planLevel).catchError((_) {}),
-        onReject: (id) => widget.db.updateTenantStatus(id, 'rejected').catchError((_) {}),
+        onReject: (id) => widget.db.rejectOnboarding(id).catchError((_) {}),
       )),
       onSignOut: () => widget.auth.signOut(),
     );
@@ -191,8 +267,15 @@ class QCutHome extends StatefulWidget {
   final AuthService auth;
   final AuthUser user;
   final FirestoreService db;
+  final String tenantId;
 
-  const QCutHome({super.key, required this.auth, required this.user, required this.db});
+  const QCutHome({
+    super.key,
+    required this.auth,
+    required this.user,
+    required this.db,
+    required this.tenantId,
+  });
 
   @override
   State<QCutHome> createState() => _QCutHomeState();
@@ -207,6 +290,7 @@ class _QCutHomeState extends State<QCutHome> {
   StreamSubscription<List<Service>>? _servicesSub;
   StreamSubscription<Tenant?>? _tenantSub;
 
+  // Live data
   List<TokenEntry> _serving = [];
   List<TokenEntry> _waiting = [];
   List<TokenEntry> _completed = [];
@@ -215,72 +299,65 @@ class _QCutHomeState extends State<QCutHome> {
   List<Service> _services = [];
   Tenant? _tenant;
   int _nextToken = 1;
-  bool _usingFirestore = false;
+  bool _seeded = false;
 
-  String get _tenantId => _tenant?.id ?? widget.user.uid;
+  String get _tenantId => widget.tenantId;
   SubscriptionPlan get _plan => _tenant?.plan ?? SubscriptionPlan.starter;
 
   @override
   void initState() {
     super.initState();
-    _initDemoData();
+    _seedDemoData();
     _connectFirestore();
   }
 
-  void _initDemoData() {
-    _tenant = Tenant(
-      id: widget.user.uid, name: 'My Shop', ownerEmail: widget.user.email ?? '',
-      businessType: 'salon', planLevel: 0, bookingMode: 'token',
-      phone: '+919****3210', address: 'Kerala',
-    );
-    _barbers = [
-      Barber(id: 'b1', name: 'Rajesh', order: 0),
-      Barber(id: 'b2', name: 'Faisal', order: 1),
-    ];
-    _services = [
-      Service(id: 's1', name: 'Haircut', price: 150, durationMin: 30, category: ServiceCategory.hair),
-      Service(id: 's2', name: 'Beard Trim', price: 80, durationMin: 15, category: ServiceCategory.beard),
-      Service(id: 's3', name: 'Haircut + Beard', price: 200, durationMin: 45, category: ServiceCategory.hair),
-    ];
-    _serving = [TokenEntry(id: '1', tokenNumber: 4, name: 'Ramesh Kumar', phone: '+919****3211', status: 'serving', staffName: 'Rajesh')];
-    _waiting = [
-      TokenEntry(id: '2', tokenNumber: 5, name: 'Suresh Nair', status: 'waiting', staffName: 'Rajesh'),
-      TokenEntry(id: '3', tokenNumber: 6, name: 'Abdul Rahim', status: 'waiting', staffName: 'Faisal'),
-    ];
-    _completed = [
-      TokenEntry(id: '5', tokenNumber: 1, name: 'Aravind', status: 'completed', staffName: 'Rajesh'),
-      TokenEntry(id: '6', tokenNumber: 2, name: 'Deepak', status: 'completed', staffName: 'Faisal'),
-    ];
+  /// Minimal seed so UI renders instantly while Firestore loads
+  void _seedDemoData() {
+    _tenant = Tenant(id: _tenantId, name: 'Loading...', ownerEmail: widget.user.email ?? '', planLevel: 0, bookingMode: 'token');
+    _barbers = [];
+    _services = [];
+    _serving = [];
+    _waiting = [];
+    _completed = [];
     _bookings = [];
-    _nextToken = 7;
+    _nextToken = 1;
   }
 
+  /// Subscribe to all Firestore streams — real-time sync
   void _connectFirestore() {
     final tid = _tenantId;
-    _barbersSub = widget.db.barbers(tid).listen((list) {
-      if (!mounted) return;
-      setState(() { if (list.isNotEmpty) { _barbers = list; _usingFirestore = true; } });
-    });
-    _servicesSub = widget.db.services(tid).listen((list) {
-      if (!mounted) return;
-      setState(() { if (list.isNotEmpty) { _services = list; _usingFirestore = true; } });
-    });
+
     _tenantSub = widget.db.tenantStream(tid).listen((t) {
       if (!mounted) return;
-      setState(() { if (t != null) _tenant = t; });
+      setState(() { if (t != null) { _tenant = t; _seeded = true; } });
     });
+
+    _barbersSub = widget.db.barbers(tid).listen((list) {
+      if (!mounted) return;
+      setState(() { _barbers = list; _seeded = true; });
+    });
+
+    _servicesSub = widget.db.services(tid).listen((list) {
+      if (!mounted) return;
+      setState(() { _services = list; _seeded = true; });
+    });
+
     _tokensSub = widget.db.tokenQueue(tid).listen((list) {
       if (!mounted) return;
       setState(() {
         _serving = list.where((t) => t.status == 'serving').toList();
         _waiting = list.where((t) => t.status == 'waiting').toList();
-        _completed = list.where((t) => t.status == 'completed' || t.status == 'no-show' || t.status == 'cancelled').toList();
-        if (list.isNotEmpty) { _nextToken = list.map((t) => t.tokenNumber).reduce((a, b) => a > b ? a : b) + 1; _usingFirestore = true; }
+        _completed = list.where((t) => t.status != 'waiting' && t.status != 'serving').toList();
+        if (list.isNotEmpty) {
+          _nextToken = list.map((t) => t.tokenNumber).reduce((a, b) => a > b ? a : b) + 1;
+          _seeded = true;
+        }
       });
     });
+
     _bookingsSub = widget.db.bookings(tid).listen((list) {
       if (!mounted) return;
-      setState(() { if (list.isNotEmpty) { _bookings = list; _usingFirestore = true; } });
+      setState(() { _bookings = list; _seeded = true; });
     });
   }
 
@@ -296,68 +373,84 @@ class _QCutHomeState extends State<QCutHome> {
   bool get _canUseQR => _plan.qrCode;
   bool get _canSeeCustomerHistory => _plan.customerHistory;
 
-  // ── Actions ──
+  // ── Actions (all persist to Firestore) ──
   void _callNext() {
     HapticFeedback.mediumImpact();
     setState(() {
       if (_serving.isNotEmpty) {
         final done = _serving.first.copyWith(status: 'completed');
         _completed.insert(0, done); _serving.clear();
-        _persistToken(done);
+        widget.db.addToken(_tenantId, done).catchError((_) {});
       }
       if (_waiting.isNotEmpty) {
         final next = _waiting.first.copyWith(status: 'serving');
         _serving.add(next); _waiting.removeAt(0);
-        _persistToken(next);
+        widget.db.addToken(_tenantId, next).catchError((_) {});
       }
     });
   }
 
   void _complete(TokenEntry t) {
-    setState(() { _serving.remove(t); final done = t.copyWith(status: 'completed'); _completed.insert(0, done); _persistToken(done); _autoNext(); });
+    setState(() { _serving.remove(t); final done = t.copyWith(status: 'completed'); _completed.insert(0, done); widget.db.addToken(_tenantId, done).catchError((_) {}); _autoNext(); });
   }
   void _noShow(TokenEntry t) {
-    setState(() { _serving.remove(t); final ns = t.copyWith(status: 'no-show'); _completed.insert(0, ns); _persistToken(ns); _autoNext(); });
+    setState(() { _serving.remove(t); final ns = t.copyWith(status: 'no-show'); _completed.insert(0, ns); widget.db.addToken(_tenantId, ns).catchError((_) {}); _autoNext(); });
   }
   void _cancel(TokenEntry t) {
-    setState(() { _waiting.remove(t); final c = t.copyWith(status: 'cancelled'); _completed.insert(0, c); _persistToken(c); });
+    setState(() { _waiting.remove(t); final c = t.copyWith(status: 'cancelled'); _completed.insert(0, c); widget.db.addToken(_tenantId, c).catchError((_) {}); });
   }
   void _autoNext() {
     if (_serving.isEmpty && _waiting.isNotEmpty) {
-      final next = _waiting.first.copyWith(status: 'serving'); _serving.add(next); _waiting.removeAt(0); _persistToken(next);
+      final next = _waiting.first.copyWith(status: 'serving'); _serving.add(next); _waiting.removeAt(0); widget.db.addToken(_tenantId, next).catchError((_) {});
     }
   }
+
   void _customerJoin(String barberId, String name, String phone) {
     final barber = _barbers.firstWhere((b) => b.id == barberId);
-    final token = TokenEntry(id: DateTime.now().millisecondsSinceEpoch.toString(), tokenNumber: _nextToken++, name: name, phone: phone, status: 'waiting', staffName: barber.name, date: DateTime.now().toIso8601String().substring(0, 10), createdAt: DateTime.now());
+    final token = TokenEntry(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      tokenNumber: _nextToken++, name: name, phone: phone,
+      status: 'waiting', staffName: barber.name,
+      date: DateTime.now().toIso8601String().substring(0, 10),
+      createdAt: DateTime.now(),
+    );
     setState(() => _waiting.add(token));
-    _persistToken(token);
+    widget.db.addToken(_tenantId, token).catchError((_) {});
   }
+
   void _cancelBooking(Booking b) {
     setState(() {
       final i = _bookings.indexOf(b);
       _bookings[i] = Booking(id: b.id, tenantId: b.tenantId, customerName: b.customerName, phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName, date: b.date, timeSlot: b.timeSlot, status: 'cancelled', serviceType: b.serviceType, bookingCode: b.bookingCode, durationMin: b.durationMin, createdAt: b.createdAt, updatedAt: DateTime.now());
     });
-    _persistBooking(b);
+    widget.db.updateBookingStatus(_tenantId, b.id, 'cancelled').catchError((_) {});
   }
   void _addBooking(Booking b) {
-    setState(() => _bookings.insert(0, b)); _persistBooking(b);
+    setState(() => _bookings.insert(0, b));
+    widget.db.addBooking(_tenantId, b).catchError((_) {});
   }
+
   void _addBarber(String name) {
     final b = Barber(id: 'b${DateTime.now().millisecondsSinceEpoch}', name: name, order: _barbers.length);
     setState(() => _barbers.add(b));
-    _persistBarber(b);
+    widget.db.addBarber(_tenantId, b).catchError((_) {});
   }
   void _toggleBarber(Barber b) {
     final u = Barber(id: b.id, name: b.name, isActive: !b.isActive, photoURL: b.photoURL, order: b.order, scheduleStart: b.scheduleStart, scheduleEnd: b.scheduleEnd, serviceIds: b.serviceIds);
     setState(() { final i = _barbers.indexOf(b); _barbers[i] = u; });
-    _persistBarber(u);
+    widget.db.updateBarber(_tenantId, u).catchError((_) {});
   }
   void _deleteBarber(String id) {
     setState(() => _barbers.removeWhere((b) => b.id == id));
     widget.db.deleteBarber(_tenantId, id).catchError((_) {});
   }
-  void _saveSettings(Tenant updated) => setState(() => _tenant = updated);
+
+  void _saveSettings(Tenant updated) {
+    setState(() => _tenant = updated);
+    // Persist to Firestore
+    widget.db.saveTenantDoc(_tenantId, updated).catchError((_) {});
+  }
+
   void _addService(Service s) {
     setState(() => _services.add(s));
     widget.db.addService(_tenantId, s).catchError((_) {});
@@ -365,19 +458,6 @@ class _QCutHomeState extends State<QCutHome> {
   void _deleteService(String id) {
     setState(() => _services.removeWhere((s) => s.id == id));
     widget.db.deleteService(_tenantId, id).catchError((_) {});
-  }
-
-  void _persistToken(TokenEntry t) {
-    if (!_usingFirestore) return;
-    widget.db.addToken(_tenantId, t).catchError((_) {});
-  }
-  void _persistBooking(Booking b) {
-    if (!_usingFirestore) return;
-    widget.db.updateBookingStatus(_tenantId, b.id, b.status).catchError((_) {});
-  }
-  void _persistBarber(Barber b) {
-    if (!_usingFirestore) return;
-    widget.db.addBarber(_tenantId, b).catchError((_) {});
   }
 
   void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
@@ -389,21 +469,15 @@ class _QCutHomeState extends State<QCutHome> {
     return 'https://qcut.in/$slug';
   }
 
-  /// Show plan upgrade prompt for gated features
   void _showUpgradePrompt(String feature) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(children: [Icon(Icons.lock, color: QCutColors.purple), SizedBox(width: 8), Text('Plan Upgrade Required', style: TextStyle(color: QCutColors.navy))]),
-        content: Text('$feature is available on the Pro (₹499/mo) or Clinic (₹349/mo) plan. Upgrade your subscription to unlock this feature.'),
+        content: Text('$feature is available on the Pro (₹499/mo) or Clinic (₹349/mo) plan. Contact your administrator to upgrade.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Maybe Later')),
-          ElevatedButton(
-            onPressed: () { Navigator.pop(ctx); /* Future: contact admin flow */ },
-            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.purple, foregroundColor: Colors.white),
-            child: const Text('Upgrade Now'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
         ],
       ),
     );
@@ -412,7 +486,6 @@ class _QCutHomeState extends State<QCutHome> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final plan = _plan;
 
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: [
@@ -427,7 +500,7 @@ class _QCutHomeState extends State<QCutHome> {
           onOpenReports: () => _push(ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving, barbers: _barbers, services: _services)),
           onOpenQR: () => _canUseQR ? _push(ShopQRScreen(shopName: _tenant!.name, bookingUrl: _bookingUrl)) : _showUpgradePrompt('QR Booking Link'),
           onSignOut: _signOut,
-          plan: plan,
+          plan: _plan,
         ),
         TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed, onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel),
         if (_canSeeCustomerHistory)
@@ -452,7 +525,6 @@ class _QCutHomeState extends State<QCutHome> {
   }
 }
 
-/// Placeholder screen when a feature is gated by plan
 class _UpgradePlaceholder extends StatelessWidget {
   final String feature;
   final VoidCallback onUpgrade;
@@ -468,7 +540,7 @@ class _UpgradePlaceholder extends StatelessWidget {
           const SizedBox(height: 16),
           Text('$feature Locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: QCutColors.charcoal.withValues(alpha: 0.4))),
           const SizedBox(height: 8),
-          Text('Upgrade to Pro or Clinic plan to access $feature', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.3))),
+          Text('Upgrade to Pro or Clinic plan', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.3))),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: onUpgrade,
