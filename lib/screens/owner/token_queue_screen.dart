@@ -1,0 +1,188 @@
+import 'package:flutter/material.dart';
+import '../../models/token_entry.dart';
+import '../../theme/app_theme.dart';
+
+/// Token Queue Dashboard — ported from QCUT Kotlin TokenQueueDashboard.kt
+class TokenQueueScreen extends StatelessWidget {
+  final List<TokenEntry> serving;
+  final List<TokenEntry> waiting;
+  final List<TokenEntry> completed;
+  final VoidCallback onCallNext;
+  final Function(TokenEntry) onComplete;
+  final Function(TokenEntry) onNoShow;
+  final Function(TokenEntry) onCancel;
+
+  const TokenQueueScreen({
+    super.key,
+    required this.serving,
+    required this.waiting,
+    required this.completed,
+    required this.onCallNext,
+    required this.onComplete,
+    required this.onNoShow,
+    required this.onCancel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Token Queue'), backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Theme.of(context).colorScheme.onPrimary),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        _SectionHeader(icon: Icons.campaign, title: 'Now Serving'),
+        const SizedBox(height: 12),
+        if (serving.isEmpty)
+          _EmptyServing(onCallNext: onCallNext, hasWaiting: waiting.isNotEmpty)
+        else
+          ...serving.map((t) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _ServingCard(token: t, onComplete: () => onComplete(t), onNoShow: () => onNoShow(t)),
+          )),
+
+        const SizedBox(height: 24),
+        _SectionHeader(icon: Icons.access_time, title: 'Waiting Queue', trailing: '${waiting.length} waiting'),
+        const SizedBox(height: 12),
+        if (waiting.isEmpty)
+          _EmptyCard(text: 'Queue is empty.')
+        else
+          Card(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Column(
+              children: waiting.asMap().entries.map((e) => Column(
+                children: [
+                  _WaitingRow(token: e.value, onCancel: () => onCancel(e.value)),
+                  if (e.key < waiting.length - 1) const Divider(height: 1),
+                ],
+              )).toList(),
+            ),
+          ),
+
+        const SizedBox(height: 24),
+        _SectionHeader(icon: Icons.check_circle, title: 'Completed Today'),
+        const SizedBox(height: 12),
+        if (completed.isEmpty)
+          _EmptyCard(text: 'No completed tokens yet.')
+        else
+          Wrap(spacing: 6, runSpacing: 6, children: completed.map((t) => Chip(
+            avatar: Text('#${t.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+            label: Text(t.name, style: const TextStyle(fontSize: 11)),
+            backgroundColor: QCutColors.surfaceVariant,
+          )).toList()),
+      ]),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? trailing;
+  const _SectionHeader({required this.icon, required this.title, this.trailing});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      Icon(icon, size: 18, color: QCutColors.navy),
+      const SizedBox(width: 8),
+      Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: QCutColors.navy)),
+      const Spacer(),
+      if (trailing != null)
+        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: QCutColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
+          child: Text(trailing!, style: TextStyle(fontSize: 11, color: QCutColors.charcoal.withValues(alpha: 0.6)))),
+    ]);
+  }
+}
+
+class _EmptyServing extends StatelessWidget {
+  final VoidCallback onCallNext;
+  final bool hasWaiting;
+  const _EmptyServing({required this.onCallNext, required this.hasWaiting});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: QCutColors.surfaceVariant.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: QCutColors.charcoal.withValues(alpha: 0.1))),
+      child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [
+        Text('No tokens currently being served.', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+        if (hasWaiting) ...[
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: onCallNext,
+            icon: const Icon(Icons.play_arrow, size: 16),
+            label: const Text('Call Next Token'),
+            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.navy, foregroundColor: Colors.white),
+          ),
+        ],
+      ])),
+    );
+  }
+}
+
+class _ServingCard extends StatelessWidget {
+  final TokenEntry token;
+  final VoidCallback onComplete, onNoShow;
+  const _ServingCard({required this.token, required this.onComplete, required this.onNoShow});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: QCutColors.emerald, width: 2)),
+      elevation: 4,
+      child: Column(children: [
+        Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 4),
+          decoration: const BoxDecoration(color: QCutColors.emerald, borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
+          child: const Text('SERVING', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1))),
+        Padding(padding: const EdgeInsets.all(16), child: Row(children: [
+          Container(width: 48, height: 48, decoration: const BoxDecoration(color: QCutColors.emeraldBg, shape: BoxShape.circle),
+            child: Center(child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.emerald)))),
+          const SizedBox(width: 16),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(token.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: QCutColors.navy)),
+            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5), fontSize: 12)),
+          ])),
+        ])),
+        Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Row(children: [
+          Expanded(child: ElevatedButton(onPressed: onComplete, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.emerald, foregroundColor: Colors.white), child: const Text('Complete'))),
+          const SizedBox(width: 8),
+          IconButton(onPressed: onNoShow, style: IconButton.styleFrom(backgroundColor: QCutColors.surfaceVariant), icon: Icon(Icons.close, color: QCutColors.charcoal.withValues(alpha: 0.6))),
+        ])),
+      ]),
+    );
+  }
+}
+
+class _WaitingRow extends StatelessWidget {
+  final TokenEntry token;
+  final VoidCallback onCancel;
+  const _WaitingRow({required this.token, required this.onCancel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+        SizedBox(width: 40, child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.navy))),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.navy)),
+          if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+        ])),
+        IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: onCancel),
+      ]),
+    );
+  }
+}
+
+class _EmptyCard extends StatelessWidget {
+  final String text;
+  const _EmptyCard({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: QCutColors.surfaceVariant.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(text, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))))),
+    );
+  }
+}
