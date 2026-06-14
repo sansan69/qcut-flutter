@@ -32,6 +32,21 @@ class AppLocalizations {
       'quick_actions': 'Quick Actions',
       'waiting_count': '{} waiting',
       'serving': 'SERVING',
+      'join_queue': 'Join Queue',
+      'my_bookings': 'My Bookings',
+      'select_barber': 'Select Barber',
+      'your_name': 'Your Name',
+      'phone_optional': 'Phone Number (optional)',
+      'scan_qr': 'Scan shop QR code',
+      'walk_in': 'Walk-in Registration',
+      'token_issued': 'Token Issued',
+      'upcoming': 'Upcoming',
+      'past': 'Past',
+      'no_bookings': 'No bookings yet',
+      'cancel_booking': 'Cancel Booking',
+      'barber': 'Barber',
+      'done': 'Done',
+      'wait_estimate': '~15 min wait',
     },
     'ml': {
       'app_title': 'ക്യൂ - കട്ട്',
@@ -56,31 +71,63 @@ class AppLocalizations {
       'quick_actions': 'ദ്രുത പ്രവർത്തനങ്ങൾ',
       'waiting_count': '{} കാത്തിരിക്കുന്നു',
       'serving': 'സേവനത്തിൽ',
+      'join_queue': 'ക്യൂവിൽ ചേരുക',
+      'my_bookings': 'എൻ്റെ ബുക്കിംഗുകൾ',
+      'select_barber': 'ബാർബർ തിരഞ്ഞെടുക്കുക',
+      'your_name': 'നിങ്ങളുടെ പേര്',
+      'phone_optional': 'ഫോൺ നമ്പർ (ഓപ്ഷണൽ)',
+      'scan_qr': 'ഷോപ്പ് QR കോഡ് സ്കാൻ ചെയ്യുക',
+      'walk_in': 'വാക്ക്-ഇൻ രജിസ്ട്രേഷൻ',
+      'token_issued': 'ടോക്കൺ നൽകി',
+      'upcoming': 'വരാനിരിക്കുന്നവ',
+      'past': 'കഴിഞ്ഞവ',
+      'no_bookings': 'ബുക്കിംഗുകളൊന്നുമില്ല',
+      'cancel_booking': 'ബുക്കിംഗ് റദ്ദാക്കുക',
+      'barber': 'ബാർബർ',
+      'done': 'പൂർത്തിയായി',
+      'wait_estimate': '~15 മിനിറ്റ് കാത്തിരിപ്പ്',
     },
   };
 
-  String get appTitle => _localizedValues[locale.languageCode]?['app_title'] ?? 'Q - CUT';
-  String get dashboard => _localizedValues[locale.languageCode]?['dashboard'] ?? 'Dashboard';
-  String get queue => _localizedValues[locale.languageCode]?['queue'] ?? 'Queue';
-  String get customers => _localizedValues[locale.languageCode]?['customers'] ?? 'Customers';
-  String get reports => _localizedValues[locale.languageCode]?['reports'] ?? 'Reports';
-  String get nowServing => _localizedValues[locale.languageCode]?['now_serving'] ?? 'Now Serving';
-  String get waitingQueue => _localizedValues[locale.languageCode]?['waiting_queue'] ?? 'Waiting Queue';
-  String get completedToday => _localizedValues[locale.languageCode]?['completed_today'] ?? 'Completed Today';
-  String get callNext => _localizedValues[locale.languageCode]?['call_next'] ?? 'Call Next Token';
-  String get complete => _localizedValues[locale.languageCode]?['complete'] ?? 'Complete';
-  String get noShow => _localizedValues[locale.languageCode]?['no_show'] ?? 'No Show';
-  String get cancel => _localizedValues[locale.languageCode]?['cancel'] ?? 'Cancel';
-  String get queueEmpty => _localizedValues[locale.languageCode]?['queue_empty'] ?? 'Queue is empty.';
-  String get noTokensServing => _localizedValues[locale.languageCode]?['no_tokens_serving'] ?? 'No tokens currently being served.';
-  String get noCompleted => _localizedValues[locale.languageCode]?['no_completed'] ?? 'No completed tokens yet.';
-  String get staff => _localizedValues[locale.languageCode]?['staff'] ?? 'Staff';
-  String get bookings => _localizedValues[locale.languageCode]?['bookings'] ?? 'Bookings';
-  String get settings => _localizedValues[locale.languageCode]?['settings'] ?? 'Settings';
-  String get tokenQueue => _localizedValues[locale.languageCode]?['token_queue'] ?? 'Token Queue';
-  String get quickActions => _localizedValues[locale.languageCode]?['quick_actions'] ?? 'Quick Actions';
-  String waitingCount(int n) => (_localizedValues[locale.languageCode]?['waiting_count'] ?? '{} waiting').replaceAll('{}', n.toString());
-  String get serving => _localizedValues[locale.languageCode]?['serving'] ?? 'SERVING';
+  String get appTitle => _t('app_title');
+  String get dashboard => _t('dashboard');
+  String get queue => _t('queue');
+  String get customers => _t('customers');
+  String get reports => _t('reports');
+  String get nowServing => _t('now_serving');
+  String get waitingQueue => _t('waiting_queue');
+  String get completedToday => _t('completed_today');
+  String get callNext => _t('call_next');
+  String get complete => _t('complete');
+  String get noShow => _t('no_show');
+  String get cancel => _t('cancel');
+  String get queueEmpty => _t('queue_empty');
+  String get noTokensServing => _t('no_tokens_serving');
+  String get noCompleted => _t('no_completed');
+  String get staff => _t('staff');
+  String get bookings => _t('bookings');
+  String get settings => _t('settings');
+  String get tokenQueue => _t('token_queue');
+  String get quickActions => _t('quick_actions');
+  String get joinQueue => _t('join_queue');
+  String get myBookings => _t('my_bookings');
+  String get selectBarber => _t('select_barber');
+  String get yourName => _t('your_name');
+  String get phoneOptional => _t('phone_optional');
+  String get scanQr => _t('scan_qr');
+  String get walkIn => _t('walk_in');
+  String get tokenIssued => _t('token_issued');
+  String get upcoming => _t('upcoming');
+  String get past => _t('past');
+  String get noBookings => _t('no_bookings');
+  String get cancelBooking => _t('cancel_booking');
+  String get barber => _t('barber');
+  String get done => _t('done');
+  String get waitEstimate => _t('wait_estimate');
+  String waitingCount(int n) => _t('waiting_count').replaceAll('{}', n.toString());
+  String get serving => _t('serving');
+
+  String _t(String key) => _localizedValues[locale.languageCode]?[key] ?? _localizedValues['en']![key] ?? key;
 
   static const delegate = _AppLocalizationsDelegate();
 }
