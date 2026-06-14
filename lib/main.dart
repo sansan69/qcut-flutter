@@ -5,6 +5,7 @@ import 'dart:async';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/owner/owner_dashboard_screen.dart';
 import 'screens/owner/token_queue_screen.dart';
@@ -18,7 +19,9 @@ import 'models/shop_models.dart';
 import 'models/token_entry.dart';
 import 'models/booking.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initFirebase();
   runApp(const QCutApp());
 }
 
@@ -53,8 +56,8 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  // Use demo auth by default. Swap to FirebaseAuthService when ready.
-  final AuthService _auth = DemoAuthService();
+  // Firebase auth — email/password (free), anonymous for customers
+  final AuthService _auth = FirebaseAuthService();
   StreamSubscription<AuthUser?>? _sub;
   AuthUser? _user;
 
@@ -70,7 +73,7 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void dispose() {
     _sub?.cancel();
-    if (_auth is DemoAuthService) (_auth as DemoAuthService).dispose();
+    if (_auth is FirebaseAuthService) (_auth as FirebaseAuthService).dispose();
     super.dispose();
   }
 
