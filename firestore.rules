@@ -1,45 +1,60 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ── Tenants ──
-    match /tenants/{tenantId} {
-      // Owner can read/write their own tenant doc
-      allow read, write: if request.auth != null
-        && (resource.data.ownerEmail == request.auth.token.email
-            || request.auth.token.email in ['admin@qcut.in']);
-
-      // ── Tokens (subcollection) ──
-      match /tokens/{date}/entries/{entryId} {
-        allow read, write: if request.auth != null;
-      }
-
-      // ── Bookings ──
-      match /bookings/{bookingId} {
-        allow read, write: if request.auth != null;
-      }
-
-      // ── Barbers ──
-      match /barbers/{barberId} {
-        allow read, write: if request.auth != null;
-      }
-
-      // ── Services ──
-      match /services/{serviceId} {
-        allow read, write: if request.auth != null;
-      }
-
-      // ── Settings ──
-      match /settings/{settingId} {
-        allow read, write: if request.auth != null;
-      }
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // ── Onboarding Submissions ──
-    match /onboarding_submissions/{submissionId} {
-      allow read, write: if request.auth != null
-        && request.auth.token.email in ['admin@qcut.in'];
-      allow create: if true; // Anyone can submit onboarding
+    function isPlatformAdmin() {
+      return isAuthenticated() && request.auth.token.role == 'platform_admin';
+    }
+
+    function isProviderForTenant(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.role == 'provider'
+        && request.auth.token.tenantId == tenantId;
+    }
+
+    function isCustomer() {
+      return isAuthenticated() && request.auth.token.role == 'customer';
+    }
+
+    match /tenants/{tenantId} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow create: if isPlatformAdmin();
+      allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /tenants/{tenantId}/{collection}/{id} {
+      allow read, write: if isPlatformAdmin() || isProviderForTenant(tenantId);
+    }
+
+    match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || isCustomer();
+      allow create, update: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /users/{uid} {
+      allow read, update: if isAuthenticated() && request.auth.uid == uid;
+      allow create: if isAuthenticated() && request.auth.uid == uid;
+      allow delete: if isPlatformAdmin();
+    }
+
+    match /onboarding_submissions/{id} {
+      allow create: if true;
+      allow read, update, delete: if isPlatformAdmin();
+    }
+
+    match /plans/{id} {
+      allow read: if true;
+      allow write: if isPlatformAdmin();
+    }
+
+    match /audit_logs/{id} {
+      allow read: if isPlatformAdmin();
+      allow create: if isAuthenticated();
     }
   }
 }

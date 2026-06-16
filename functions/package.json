@@ -1,0 +1,16 @@
+{
+  "name": "qcut-firestore-rules-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "NODE_PATH=./node_modules jest"
+  },
+  "jest": {
+    "rootDir": ".."
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.1",
+    "firebase": "^10.14.1",
+    "jest": "^29.7.0"
+  }
+}
