@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'data/services/firebase_options.dart';
 import 'dart:async';
 import 'l10n/app_localizations.dart';
 import 'theme/app_theme.dart';
@@ -32,13 +33,7 @@ import 'models/booking.dart';
 Future<void> initFirebase() async {
   try {
     await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: 'AIzaSy...B3Y0',
-        appId: '1:909538604832:android:4570f72010453de684cd45',
-        messagingSenderId: '909538604832',
-        projectId: 'appointment-32f4a',
-        storageBucket: 'appointment-32f4a.firebasestorage.app',
-      ),
+      options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
     debugPrint('Firebase init skipped (demo mode): $e');
