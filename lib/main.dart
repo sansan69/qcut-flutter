@@ -552,7 +552,7 @@ class _QCutHomeState extends State<QCutHome> {
           CustomerListScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList())
         else
           _UpgradePlaceholder(feature: 'Customer History', onUpgrade: () => _showUpgradePrompt('Customer History')),
-        JoinQueueScreen(barbers: _barbers, onJoin: _customerJoin, bookingUrl: _bookingUrl, shopName: _tenant!.name),
+        JoinQueueScreen(barbers: _barbers, onJoin: _customerJoin, bookingUrl: _bookingUrl, shopName: _tenant!.name, nextToken: _nextToken),
         ReportsScreen(completedTokens: _completed, completedBookings: _bookings.where((b) => b.status == 'completed').toList(), waitingTokens: _waiting, servingTokens: _serving, barbers: _barbers, services: _services),
       ]),
       bottomNavigationBar: NavigationBar(

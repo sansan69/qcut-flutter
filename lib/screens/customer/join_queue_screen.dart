@@ -11,6 +11,7 @@ class JoinQueueScreen extends StatefulWidget {
   final Function(String barberId, String name, String phone) onJoin;
   final String bookingUrl;
   final String shopName;
+  final int nextToken;
 
   const JoinQueueScreen({
     super.key,
@@ -18,6 +19,7 @@ class JoinQueueScreen extends StatefulWidget {
     required this.onJoin,
     required this.bookingUrl,
     required this.shopName,
+    this.nextToken = 1,
   });
 
   @override
@@ -49,7 +51,7 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
     // Simulate token issuance
     final token = TokenEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      tokenNumber: 8,
+      tokenNumber: widget.nextToken,
       name: _nameCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
       status: 'waiting',
