@@ -209,7 +209,7 @@ class AppLocalizations {
       'copy_link': 'Copy Link',
       'link_copied': 'Booking link copied!',
       'print_tip': 'Print this QR code and display at your shop counter for customers to scan and book.',
-      'book_with_shop': 'Book with {} — {}',
+      'book_with_shop': 'Book with {shop} — {url}',
 
       // ── Join Queue ──
       'join_queue': 'Join Queue',
@@ -452,7 +452,7 @@ class AppLocalizations {
       'copy_link': 'ലിങ്ക് കോപ്പി ചെയ്യുക',
       'link_copied': 'ബുക്കിംഗ് ലിങ്ക് കോപ്പി ചെയ്തു!',
       'print_tip': 'ഉപഭോക്താക്കൾക്ക് സ്കാൻ ചെയ്ത് ബുക്ക് ചെയ്യാൻ ഈ QR കോഡ് പ്രിന്റ് ചെയ്ത് ഷോപ്പ് കൗണ്ടറിൽ പ്രദർശിപ്പിക്കുക.',
-      'book_with_shop': '{} ഉപയോഗിച്ച് ബുക്ക് ചെയ്യുക — {}',
+      'book_with_shop': '{shop} ഉപയോഗിച്ച് ബുക്ക് ചെയ്യുക — {url}',
 
       // ── Join Queue ──
       'join_queue': 'ക്യൂവിൽ ചേരുക',
@@ -712,7 +712,7 @@ class AppLocalizations {
   String waitingCount(int n) => _t('waiting_count').replaceAll('{}', n.toString());
   String removeBarberMsgName(String name) => _t('remove_barber_msg').replaceAll('{}', name);
   String bookShopTitleName(String name) => _t('book_shop_title').replaceAll('{}', name);
-  String bookWithShopMsg(String shop, String url) => _t('book_with_shop').replaceAll('{}', shop).replaceAll('{}', url);
+  String bookWithShopMsg(String shop, String url) => _t('book_with_shop').replaceAll('{shop}', shop).replaceAll('{url}', url);
 
   String _t(String key) => _localizedValues[locale.languageCode]?[key] ?? _localizedValues['en']![key] ?? key;
 
