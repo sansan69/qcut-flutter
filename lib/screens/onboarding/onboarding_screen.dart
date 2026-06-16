@@ -45,6 +45,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         if (_form.ownerName.isEmpty) _errors['ownerName'] = 'Required';
         if (!OnboardingConstants.isGmail(_form.ownerEmail)) _errors['ownerEmail'] = 'Gmail required';
         if (_form.ownerPhone.length != 10) _errors['ownerPhone'] = 'Enter 10 digits';
+        if (_form.password.length < 6) _errors['password'] = 'At least 6 characters';
+        if (_form.confirmPassword != _form.password) _errors['confirmPassword'] = 'Passwords do not match';
         break;
       case 3:
         if (!_form.termsAccepted) _errors['termsAccepted'] = 'Required';
@@ -208,6 +210,8 @@ class _OwnerStep extends StatelessWidget {
       const SizedBox(height: 16),
       _Field(label: 'Owner Name *', value: form.ownerName, onChanged: (v) => form.ownerName = v, error: errors['ownerName']),
       _Field(label: 'Owner Email (Gmail) *', value: form.ownerEmail, onChanged: (v) => form.ownerEmail = v, keyboardType: TextInputType.emailAddress, error: errors['ownerEmail']),
+      _Field(label: 'Password *', value: form.password, onChanged: (v) => form.password = v, obscureText: true, error: errors['password']),
+      _Field(label: 'Confirm Password *', value: form.confirmPassword, onChanged: (v) => form.confirmPassword = v, obscureText: true, error: errors['confirmPassword']),
       _Field(label: 'Owner Phone *', value: form.ownerPhone, onChanged: (v) => form.ownerPhone = v.replaceAll(RegExp(r'[^0-9]'), '').substring(0, min(10, v.length)), keyboardType: TextInputType.phone, error: errors['ownerPhone']),
       _Field(label: 'PAN Number (Optional)', value: form.panNumber, onChanged: (v) => form.panNumber = v.toUpperCase()),
       _Field(label: 'Aadhaar (Optional)', value: form.aadhaarNumber, onChanged: (v) => form.aadhaarNumber = v.replaceAll(RegExp(r'[^0-9]'), '').substring(0, min(12, v.length)), keyboardType: TextInputType.number),
@@ -286,7 +290,8 @@ class _Field extends StatefulWidget {
   final Function(String) onChanged;
   final TextInputType? keyboardType;
   final String? error;
-  const _Field({required this.label, required this.value, required this.onChanged, this.keyboardType, this.error});
+  final bool obscureText;
+  const _Field({required this.label, required this.value, required this.onChanged, this.keyboardType, this.error, this.obscureText = false});
 
   @override
   State<_Field> createState() => _FieldState();
@@ -312,6 +317,7 @@ class _FieldState extends State<_Field> {
         controller: _ctrl,
         onChanged: widget.onChanged,
         keyboardType: widget.keyboardType,
+        obscureText: widget.obscureText,
         decoration: InputDecoration(
           labelText: widget.label,
           errorText: widget.error,

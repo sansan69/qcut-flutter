@@ -40,6 +40,7 @@ class OnboardingFormData {
   String ownerEmail = '';
   String ownerPhone = '';
   String password = ''; // For Firebase Auth account creation
+  String confirmPassword = ''; // Must match password
   String aadhaarNumber = '';
   String panNumber = '';
   String referralCode = '';
