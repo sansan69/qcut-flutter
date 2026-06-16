@@ -135,12 +135,20 @@ class _AppRootState extends State<AppRoot> {
 
     // Not signed in → Customer-centric Landing
     return LandingScreen(
-      onJoinQueue: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => JoinQueueScreen(barbers: const [], onJoin: (_, __, ___) {}, bookingUrl: '', shopName: ''),
-      )),
-      onMyBookings: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => MyBookingsScreen(bookings: const [], onCancel: (_) {}),
-      )),
+      onJoinQueue: () async {
+        try {
+          await _auth.signInAnonymously(displayName: 'Customer');
+        } catch (e) {
+          debugPrint('Anonymous sign-in failed: $e');
+        }
+      },
+      onMyBookings: () async {
+        try {
+          await _auth.signInAnonymously(displayName: 'Customer');
+        } catch (e) {
+          debugPrint('Anonymous sign-in failed: $e');
+        }
+      },
       onAdminLogin: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => LoginScreen(
           auth: _auth,
