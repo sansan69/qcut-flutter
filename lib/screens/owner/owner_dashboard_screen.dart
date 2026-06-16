@@ -12,6 +12,9 @@ class OwnerDashboardScreen extends StatelessWidget {
   final VoidCallback onOpenQR;
   final VoidCallback onSignOut;
   final SubscriptionPlan plan;
+  final int waitingCount;
+  final int servingCount;
+  final int completedCount;
 
   const OwnerDashboardScreen({
     super.key,
@@ -24,6 +27,9 @@ class OwnerDashboardScreen extends StatelessWidget {
     required this.onOpenQR,
     required this.onSignOut,
     this.plan = SubscriptionPlan.starter,
+    this.waitingCount = 0,
+    this.servingCount = 0,
+    this.completedCount = 0,
   });
 
   @override
@@ -54,11 +60,11 @@ class OwnerDashboardScreen extends StatelessWidget {
       body: ListView(padding: const EdgeInsets.all(16), children: [
         // Stats row
         Row(children: [
-          _StatCard(label: 'Waiting', value: '—', color: colors.primary),
+          _StatCard(label: 'Waiting', value: waitingCount.toString(), color: colors.primary),
           const SizedBox(width: 12),
-          _StatCard(label: 'Serving', value: '—', color: const Color(0xFF10B981)),
+          _StatCard(label: 'Serving', value: servingCount.toString(), color: const Color(0xFF10B981)),
           const SizedBox(width: 12),
-          _StatCard(label: 'Completed', value: '—', color: const Color(0xFF7C3AED)),
+          _StatCard(label: 'Completed', value: completedCount.toString(), color: const Color(0xFF7C3AED)),
         ]),
         const SizedBox(height: 24),
 

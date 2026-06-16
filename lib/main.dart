@@ -536,6 +536,9 @@ class _QCutHomeState extends State<QCutHome> {
       body: IndexedStack(index: _currentIndex, children: [
         OwnerDashboardScreen(
           tenant: _tenant!,
+          waitingCount: _waiting.length,
+          servingCount: _serving.length,
+          completedCount: _completed.length,
           onOpenQueue: () => _push(TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed, onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel)),
           onOpenBookings: () => _canUseAppointments
               ? _push(MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking, onNewBooking: () => _push(BookingScreen(barbers: _barbers, services: _services, tenantId: _tenantId, tenantName: _tenant!.name, onBook: _addBooking))))
