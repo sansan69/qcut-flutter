@@ -23,18 +23,20 @@ class FirebaseAuthService implements AuthService {
     if (fbUser == null) {
       _currentUser = null;
     } else {
-      final email = fbUser.email ?? '';
-      final role = _superAdminEmails.contains(email)
-          ? AuthRole.superAdmin
-          : fbUser.isAnonymous ? AuthRole.customer : AuthRole.owner;
       _currentUser = AuthUser(
         uid: fbUser.uid,
         email: fbUser.email,
         displayName: fbUser.displayName,
-        role: role,
+        role: _resolveRole(fbUser.email, fbUser.isAnonymous),
       );
     }
     _controller.add(_currentUser);
+  }
+
+  AuthRole _resolveRole(String? email, bool isAnonymous) {
+    if (isAnonymous) return AuthRole.customer;
+    if (_superAdminEmails.contains(email ?? '')) return AuthRole.superAdmin;
+    return AuthRole.owner;
   }
 
   @override Stream<AuthUser?> get authStateChanges => _controller.stream;
@@ -94,7 +96,7 @@ class FirebaseAuthService implements AuthService {
 
   AuthUser _toUser(fb.User u) => AuthUser(
     uid: u.uid, email: u.email, displayName: u.displayName,
-    role: u.isAnonymous ? AuthRole.customer : AuthRole.owner,
+    role: _resolveRole(u.email, u.isAnonymous),
   );
 
   @override
