@@ -38,17 +38,19 @@ dependencies:
   firebase_core: ^2.32.0
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.17.0
+  cloud_functions: ^4.5.0
   qr_flutter: ^4.1.0
   share_plus: ^9.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  fake_cloud_firestore: ^2.4.1+1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
+  # package. See that file for information on deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
