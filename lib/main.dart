@@ -451,7 +451,11 @@ class _QCutHomeState extends State<QCutHome> {
   }
 
   void _customerJoin(String barberId, String name, String phone) {
-    final barber = _barbers.firstWhere((b) => b.id == barberId);
+    final barber = _barbers.cast<Barber?>().firstWhere(
+      (b) => b!.id == barberId,
+      orElse: () => null,
+    );
+    if (barber == null) return;
     final token = TokenEntry(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       tokenNumber: _nextToken++, name: name, phone: phone,
