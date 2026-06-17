@@ -26,8 +26,20 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
-    match /tenants/{tenantId}/{collection}/{id} {
-      allow read, write: if isPlatformAdmin() || isProviderForTenant(tenantId);
+    match /tenants/{tenantId}/staff/{id} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+    }
+
+    match /tenants/{tenantId}/services/{id} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+    }
+
+    match /tenants/{tenantId}/bookings/{id} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+    }
+
+    match /tenants/{tenantId}/customers/{id} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
