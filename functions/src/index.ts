@@ -32,3 +32,5 @@ export const refreshCustomClaims = functions.https.onCall(
     return {success: true};
   },
 );
+
+export {issueToken} from './queue';
