@@ -1,5 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
+  // App Check enforcement is ENABLED in the rules below (`&& request.app != null`).
+  // Rollout recommendation: turn on App Check in monitor-only mode in the Firebase
+  // console first to collect metrics and verify legitimate clients pass attestation,
+  // then keep these rule clauses once the false-positive rate is acceptable.
   match /databases/{database}/documents {
     function isAuthenticated() {
       return request.auth != null;
@@ -20,53 +24,53 @@ service cloud.firestore {
     }
 
     match /tenants/{tenantId} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
-      allow create: if isPlatformAdmin();
-      allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
-      allow delete: if isPlatformAdmin();
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow create: if isPlatformAdmin() && request.app != null;
+      allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /tenants/{tenantId}/staff/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/services/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/bookings/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/customers/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || isCustomer();
-      allow create, update: if isPlatformAdmin() || isProviderForTenant(tenantId);
-      allow delete: if isPlatformAdmin();
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || isCustomer()) && request.app != null;
+      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /users/{uid} {
-      allow read, update: if isAuthenticated() && request.auth.uid == uid;
-      allow create: if isAuthenticated() && request.auth.uid == uid;
-      allow delete: if isPlatformAdmin();
+      allow read, update: if isAuthenticated() && request.auth.uid == uid && request.app != null;
+      allow create: if isAuthenticated() && request.auth.uid == uid && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /onboarding_submissions/{id} {
-      allow create: if true;
-      allow read, update, delete: if isPlatformAdmin();
+      allow create: if true && request.app != null;
+      allow read, update, delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /plans/{id} {
-      allow read: if true;
-      allow write: if isPlatformAdmin();
+      allow read: if true && request.app != null;
+      allow write: if isPlatformAdmin() && request.app != null;
     }
 
     match /audit_logs/{id} {
-      allow read: if isPlatformAdmin();
-      allow create: if isAuthenticated();
+      allow read: if isPlatformAdmin() && request.app != null;
+      allow create: if isAuthenticated() && request.app != null;
     }
   }
 }

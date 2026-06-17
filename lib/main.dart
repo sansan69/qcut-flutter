@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:qcut_flutter/data/services/app_check_service.dart';
 import 'package:qcut_flutter/data/services/firebase_options.dart';
 import 'dart:async';
 import 'l10n/app_localizations.dart';
@@ -35,6 +36,7 @@ Future<void> initFirebase() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await AppCheckService.activate();
   } catch (e) {
     debugPrint('Firebase init skipped (demo mode): $e');
   }

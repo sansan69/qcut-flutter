@@ -39,6 +39,7 @@ dependencies:
   firebase_auth: ^4.16.0
   cloud_firestore: ^4.17.0
   cloud_functions: ^4.5.0
+  firebase_app_check: ^0.2.2+7
   qr_flutter: ^4.1.0
   share_plus: ^9.0.0
 
