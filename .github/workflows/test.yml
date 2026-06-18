@@ -8,4 +8,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # The functions test suite is integration-style and requires a live
+      # Firestore emulator (see functions/test/helpers.ts → requireEmulator).
+      # Boot the emulator, wait for it to accept connections, run the tests,
+      # then let the job tear everything down.
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+      - name: Start Firestore emulator
+        run: firebase emulators:start --only firestore &
+      - name: Wait for emulator
+        run: npx wait-on tcp:127.0.0.1:8080 -t 60000
       - run: cd functions && npm ci && npm test
