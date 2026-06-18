@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_models.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/q_logo_header.dart';
 
 /// Super Admin Dashboard — all tenants overview
 class SuperAdminDashboard extends StatelessWidget {
@@ -34,31 +36,36 @@ class SuperAdminDashboard extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Super Admin'),
-        backgroundColor: const Color(0xFF1A0033),
-        foregroundColor: Colors.white,
+        title: const QLogoHeader(height: 28),
         actions: [
-          IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut, tooltip: 'Sign out'),
+          IconButton(icon: const Icon(Icons.logout), onPressed: () async {
+            await HapticService.trigger(HapticType.medium);
+            onSignOut();
+          }, tooltip: 'Sign out'),
         ],
       ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await HapticService.trigger(HapticType.light);
+        },
+        child: ListView(padding: const EdgeInsets.all(16), children: [
         // Platform stats
-        Text('Platform Overview', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1A0033))),
+        Text('Platform Overview', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
         const SizedBox(height: 12),
         Row(children: [
-          _StatBadge(label: 'Active', value: '$active', color: QCutColors.emerald, bg: QCutColors.emeraldBg),
+          _StatBadge(label: 'Active', value: '$active', color: QCutColors.success, bg: QCutColors.success.withValues(alpha: 0.15)),
           const SizedBox(width: 8),
-          _StatBadge(label: 'Pending', value: '$pending', color: QCutColors.amber, bg: QCutColors.amberBg),
+          _StatBadge(label: 'Pending', value: '$pending', color: QCutColors.warning, bg: QCutColors.warning.withValues(alpha: 0.15)),
           const SizedBox(width: 8),
-          _StatBadge(label: 'Suspended', value: '$suspended', color: QCutColors.red, bg: QCutColors.redBg),
+          _StatBadge(label: 'Suspended', value: '$suspended', color: QCutColors.error, bg: QCutColors.error.withValues(alpha: 0.15)),
         ]),
         const SizedBox(height: 12),
         Row(children: [
-          _StatBadge(label: 'Starter', value: '$starterCount', color: QCutColors.charcoal, bg: QCutColors.surfaceVariant),
+          _StatBadge(label: 'Starter', value: '$starterCount', color: QCutColors.onSurfaceVariant, bg: QCutColors.surfaceContainer),
           const SizedBox(width: 8),
-          _StatBadge(label: 'Pro', value: '$proCount', color: QCutColors.purple, bg: QCutColors.purpleBg),
+          _StatBadge(label: 'Pro', value: '$proCount', color: QCutColors.primary, bg: QCutColors.primaryContainer),
           const SizedBox(width: 8),
-          _StatBadge(label: 'Clinic', value: '$clinicCount', color: const Color(0xFF0284C7), bg: const Color(0xFFE0F2FE)),
+          _StatBadge(label: 'Clinic', value: '$clinicCount', color: QCutColors.secondary, bg: QCutColors.secondaryContainer),
         ]),
 
         const SizedBox(height: 24),
@@ -66,19 +73,19 @@ class SuperAdminDashboard extends StatelessWidget {
         Row(children: [
           Expanded(
             child: _ActionButton(
-              icon: Icons.add_business, label: 'Create Tenant', color: QCutColors.purple, onTap: onCreateTenant,
+              icon: Icons.add_business, label: 'Create Tenant', color: QCutColors.primary, onTap: onCreateTenant,
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _ActionButton(
-              icon: Icons.pending_actions, label: 'Onboarding Queue', color: QCutColors.amber, onTap: onViewOnboarding,
+              icon: Icons.pending_actions, label: 'Onboarding Queue', color: QCutColors.warning, onTap: onViewOnboarding,
             ),
           ),
         ]),
 
         const SizedBox(height: 24),
-        Text('All Tenants', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: const Color(0xFF1A0033))),
+        Text('All Tenants', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
         const SizedBox(height: 12),
 
         if (tenants.isEmpty)
@@ -86,9 +93,9 @@ class SuperAdminDashboard extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.all(32),
               child: Column(children: [
-                Icon(Icons.business, size: 48, color: QCutColors.charcoal.withValues(alpha: 0.2)),
+                Icon(Icons.business, size: 48, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.2)),
                 const SizedBox(height: 12),
-                Text('No tenants yet', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+                Text('No tenants yet', style: TextStyle(color: QCutColors.onSurfaceVariant)),
                 const SizedBox(height: 8),
                 TextButton.icon(
                   onPressed: onCreateTenant,
@@ -111,7 +118,7 @@ class SuperAdminDashboard extends StatelessWidget {
                 ? const Column(children: [
                     SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 3)),
                     SizedBox(height: 8),
-                    Text('Wiping database...', style: TextStyle(fontSize: 12, color: QCutColors.red)),
+                    Text('Wiping database...', style: TextStyle(fontSize: 12, color: QCutColors.error)),
                   ])
                 : OutlinedButton.icon(
                     onPressed: () {
@@ -119,13 +126,13 @@ class SuperAdminDashboard extends StatelessWidget {
                         context: context,
                         builder: (ctx) => AlertDialog(
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          title: const Row(children: [Icon(Icons.warning_amber, color: QCutColors.red), SizedBox(width: 8), Text('Reset Database?')]),
+                          title: const Row(children: [Icon(Icons.warning_amber, color: QCutColors.error), SizedBox(width: 8), Text('Reset Database?')]),
                           content: const Text('This will permanently delete ALL tenants, tokens, bookings, barbers, services, and onboarding submissions. This cannot be undone.'),
                           actions: [
                             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
                             ElevatedButton(
                               onPressed: () { Navigator.pop(ctx); onResetDatabase?.call(); },
-                              style: ElevatedButton.styleFrom(backgroundColor: QCutColors.red, foregroundColor: Colors.white),
+                               style: ElevatedButton.styleFrom(backgroundColor: QCutColors.error, foregroundColor: Colors.white),
                               child: const Text('Yes, Delete Everything'),
                             ),
                           ],
@@ -134,13 +141,13 @@ class SuperAdminDashboard extends StatelessWidget {
                     },
                     icon: const Icon(Icons.delete_forever, size: 16),
                     label: const Text('Reset Database'),
-                    style: OutlinedButton.styleFrom(foregroundColor: QCutColors.red, side: const BorderSide(color: QCutColors.red)),
+                    style: OutlinedButton.styleFrom(foregroundColor: QCutColors.error, side: const BorderSide(color: QCutColors.error)),
                   ),
           ),
           const SizedBox(height: 24),
         ],
       ]),
-    );
+    ));
   }
 }
 
@@ -180,10 +187,10 @@ class _ActionButton extends StatelessWidget {
         onPressed: onTap,
         icon: Icon(icon, size: 18),
         label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color, foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: color, foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
       ),
     );
   }
@@ -197,7 +204,7 @@ class _TenantCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final plan = tenant.plan;
-    final statusColor = tenant.status == 'active' ? QCutColors.emerald : tenant.status == 'suspended' ? QCutColors.red : QCutColors.amber;
+    final statusColor = tenant.status == 'active' ? QCutColors.success : tenant.status == 'suspended' ? QCutColors.error : QCutColors.warning;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -210,20 +217,20 @@ class _TenantCard extends StatelessWidget {
           child: Row(children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: QCutColors.navy,
+              backgroundColor: QCutColors.primary,
               child: Text(tenant.name.isNotEmpty ? tenant.name[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 12),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: QCutColors.navy)),
+               Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: QCutColors.onSurface)),
               const SizedBox(height: 2),
-              Text(tenant.ownerEmail, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+              Text(tenant.ownerEmail, style: TextStyle(fontSize: 12, color: QCutColors.onSurfaceVariant)),
             ])),
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: QCutColors.purpleBg, borderRadius: BorderRadius.circular(6)),
-                child: Text('₹${plan.price}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: QCutColors.purple)),
+                decoration: BoxDecoration(color: QCutColors.primaryContainer, borderRadius: BorderRadius.circular(6)),
+                child: Text('₹${plan.price}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: QCutColors.primary)),
               ),
               const SizedBox(height: 4),
               Container(
@@ -233,7 +240,7 @@ class _TenantCard extends StatelessWidget {
               ),
             ]),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, color: Colors.grey),
+            const Icon(Icons.chevron_right, color: QCutColors.onSurfaceVariant),
           ]),
         ),
       ),

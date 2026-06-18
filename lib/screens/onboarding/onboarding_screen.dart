@@ -95,11 +95,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_submitted && !_loading) return _SuccessScreen(onBackToHome: widget.onBackToHome);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Join Q-CUT'),
-        backgroundColor: const Color(0xFF4A148C),
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(_step > 0 ? Icons.arrow_back : Icons.close),
           onPressed: _step > 0 ? _prev : widget.onBackToHome,
@@ -116,17 +113,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: active ? const Color(0xFF4A148C) : (done ? QCutColors.emerald : Colors.grey[200]),
+                  color: active ? QCutColors.primary : (done ? QCutColors.success : QCutColors.surfaceContainer),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: done
-                      ? const Icon(Icons.check, color: Colors.white, size: 16)
-                      : Text('${i + 1}', style: TextStyle(color: active ? Colors.white : Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold)),
+                      ? const Icon(Icons.check, color: QCutColors.onSurface, size: 16)
+                      : Text('${i + 1}', style: TextStyle(color: active ? QCutColors.onSurface : QCutColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.bold)),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(_steps[i], style: TextStyle(fontSize: 10, color: active ? const Color(0xFF4A148C) : Colors.grey)),
+              Text(_steps[i], style: TextStyle(fontSize: 10, color: active ? QCutColors.primary : QCutColors.onSurfaceVariant)),
             ]);
           })),
         ),
@@ -146,10 +143,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 120),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Queue. Cut. Go.',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+                Text(
+                  'Queue. Cut. Go.',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurfaceVariant),
+                ),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -162,15 +159,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         // Bottom bar
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))]),
+          decoration: BoxDecoration(color: QCutColors.surface, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))]),
           child: SizedBox(
             width: double.infinity,
             height: 50,
             child: ElevatedButton(
               onPressed: _loading ? null : (_step == 3 ? _submit : _next),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A148C), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: QCutColors.onSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               child: _loading
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: QCutColors.onSurface))
                   : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                       Text(_step == 3 ? 'Submit Application' : 'Next', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                       if (_step < 3) ...[const SizedBox(width: 8), const Icon(Icons.arrow_forward, size: 18)],
@@ -201,7 +198,7 @@ class _BusinessStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Business Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+      const Text('Business Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Business Name *', value: form.businessName, onChanged: (v) => form.businessName = v, error: errors['businessName']),
       _Dropdown(label: 'Business Type *', value: form.businessType, options: OnboardingConstants.businessTypes, onChanged: (v) => form.businessType = v, error: errors['businessType']),
@@ -226,7 +223,7 @@ class _OwnerStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Owner Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+      const Text('Owner Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Owner Name *', value: form.ownerName, onChanged: (v) => form.ownerName = v, error: errors['ownerName']),
       _Field(label: 'Owner Email (Gmail) *', value: form.ownerEmail, onChanged: (v) => form.ownerEmail = v, keyboardType: TextInputType.emailAddress, error: errors['ownerEmail']),
@@ -248,7 +245,7 @@ class _OperationsStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Operational Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+      const Text('Operational Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Staff Count *', value: form.staffCount, onChanged: (v) => form.staffCount = v.replaceAll(RegExp(r'[^0-9]'), ''), keyboardType: TextInputType.number),
       Row(children: [
@@ -258,12 +255,12 @@ class _OperationsStep extends StatelessWidget {
       ]),
       _Field(label: 'Expected Monthly Bookings', value: form.expectedMonthlyBookings, onChanged: (v) => form.expectedMonthlyBookings = v),
       const SizedBox(height: 16),
-      const Text('Booking Mode', style: TextStyle(fontWeight: FontWeight.w600, color: QCutColors.charcoal)),
+      const Text('Booking Mode', style: TextStyle(fontWeight: FontWeight.w600, color: QCutColors.onSurfaceVariant)),
       const SizedBox(height: 8),
       Row(children: [
-        ChoiceChip(label: const Text('Appointment'), selected: form.bookingMode == 'appointment', onSelected: (_) => form.bookingMode = 'appointment', selectedColor: const Color(0xFF7C3AED)),
+        ChoiceChip(label: const Text('Appointment'), selected: form.bookingMode == 'appointment', onSelected: (_) => form.bookingMode = 'appointment', selectedColor: QCutColors.primary),
         const SizedBox(width: 8),
-        ChoiceChip(label: const Text('Token Queue'), selected: form.bookingMode == 'token', onSelected: (_) => form.bookingMode = 'token', selectedColor: QCutColors.emerald),
+        ChoiceChip(label: const Text('Token Queue'), selected: form.bookingMode == 'token', onSelected: (_) => form.bookingMode = 'token', selectedColor: QCutColors.success),
       ]),
       const SizedBox(height: 24),
     ]);
@@ -278,15 +275,15 @@ class _ReviewStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Review & Submit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+      const Text('Review & Submit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       Card(
-        color: QCutColors.surfaceVariant,
+        color: QCutColors.surfaceContainer,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Business: ${form.businessName}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.navy)),
+            Text('Business: ${form.businessName}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
             Text('Owner: ${form.ownerName}'),
             Text('Email: ${form.ownerEmail}'),
             Text('Phone: ${form.ownerPhone}'),
@@ -392,7 +389,7 @@ class _Checkbox extends StatelessWidget {
         Checkbox(value: value, onChanged: onChanged),
         Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
       ]),
-      if (error != null) Padding(padding: const EdgeInsets.only(left: 12), child: Text(error!, style: const TextStyle(color: QCutColors.red, fontSize: 12))),
+      if (error != null) Padding(padding: const EdgeInsets.only(left: 12), child: Text(error!, style: const TextStyle(color: QCutColors.error, fontSize: 12))),
     ]);
   }
 }
@@ -408,16 +405,16 @@ class _SuccessScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.check_circle, size: 72, color: QCutColors.emerald),
+            const Icon(Icons.check_circle, size: 72, color: QCutColors.success),
             const SizedBox(height: 24),
-            const Text('Registration Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+            const Text('Registration Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
             const SizedBox(height: 16),
             Text('Thank you for registering. We\'ve sent a confirmation email. Our team will review your application within 24-48 hours.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, height: 1.5, color: Colors.grey[600])),
+              style: TextStyle(fontSize: 15, height: 1.5, color: QCutColors.onSurfaceVariant)),
             const SizedBox(height: 32),
             SizedBox(width: double.infinity, height: 50,
-              child: ElevatedButton(onPressed: onBackToHome, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4A148C), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: ElevatedButton(onPressed: onBackToHome, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: QCutColors.onSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: const Text('Back to Home'))),
           ]),
         ),

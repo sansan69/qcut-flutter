@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
 class SwipeableListTile extends StatelessWidget {
+  final Key dismissibleKey;
   final Widget child;
   final VoidCallback? onComplete;
   final VoidCallback? onCancel;
@@ -9,23 +10,50 @@ class SwipeableListTile extends StatelessWidget {
 
   const SwipeableListTile({
     super.key,
+    required this.dismissibleKey,
     required this.child,
     this.onComplete,
     this.onCancel,
     this.onLongPress,
   });
 
+  Future<bool> _confirmAction(BuildContext context, String title, String message) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: QCutColors.surfaceContainer,
+        title: Text(title, style: const TextStyle(color: QCutColors.onSurface)),
+        content: Text(message, style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dismissible(
-      key: ValueKey(key),
+      key: dismissibleKey,
       direction: DismissDirection.horizontal,
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {
-          onComplete?.call();
+          if (onComplete == null) return false;
+          final confirmed = await _confirmAction(context, 'Complete', 'Mark this token as completed?');
+          if (confirmed) onComplete?.call();
           return false;
         } else {
-          onCancel?.call();
+          if (onCancel == null) return false;
+          final confirmed = await _confirmAction(context, 'Cancel / No-show', 'Cancel or mark this token as no-show?');
+          if (confirmed) onCancel?.call();
           return false;
         }
       },

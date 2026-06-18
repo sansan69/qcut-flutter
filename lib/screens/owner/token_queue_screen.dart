@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/token_entry.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/q_logo_header.dart';
 import '../../ui/core/swipeable_list_tile.dart';
 
 Future<void> _showTokenOptions(
@@ -78,35 +79,39 @@ class TokenQueueScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Token Queue'), backgroundColor: Theme.of(context).colorScheme.primary, foregroundColor: Theme.of(context).colorScheme.onPrimary),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        _SectionHeader(icon: Icons.campaign, title: 'Now Serving'),
-        const SizedBox(height: 12),
-        if (serving.isEmpty)
-          _EmptyServing(onCallNext: onCallNext, hasWaiting: waiting.isNotEmpty)
-        else
-          ...serving.map((t) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: SwipeableListTile(
-              key: ValueKey('serving-${t.id}'),
-              onComplete: () async {
-                await HapticService.trigger(HapticType.medium);
-                onComplete(t);
-              },
-              onCancel: () async {
-                await HapticService.trigger(HapticType.heavy);
-                onNoShow(t);
-              },
-              onLongPress: () => _showTokenOptions(
-                context,
-                token: t,
-                isServing: true,
-                onComplete: () => onComplete(t),
-                onNoShow: () => onNoShow(t),
+      appBar: AppBar(title: const QLogoHeader(height: 28)),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await HapticService.trigger(HapticType.light);
+        },
+        child: ListView(padding: const EdgeInsets.all(16), children: [
+          _SectionHeader(icon: Icons.campaign, title: 'Now Serving'),
+          const SizedBox(height: 12),
+          if (serving.isEmpty)
+            _EmptyServing(onCallNext: onCallNext, hasWaiting: waiting.isNotEmpty)
+          else
+            ...serving.map((t) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SwipeableListTile(
+                dismissibleKey: ValueKey('serving-${t.id}'),
+                onComplete: () async {
+                  await HapticService.trigger(HapticType.medium);
+                  onComplete(t);
+                },
+                onCancel: () async {
+                  await HapticService.trigger(HapticType.heavy);
+                  onNoShow(t);
+                },
+                onLongPress: () => _showTokenOptions(
+                  context,
+                  token: t,
+                  isServing: true,
+                  onComplete: () => onComplete(t),
+                  onNoShow: () => onNoShow(t),
+                ),
+                child: _ServingCard(token: t, onComplete: () => onComplete(t), onNoShow: () => onNoShow(t)),
               ),
-              child: _ServingCard(token: t, onComplete: () => onComplete(t), onNoShow: () => onNoShow(t)),
-            ),
-          )),
+            )),
 
         const SizedBox(height: 24),
         _SectionHeader(icon: Icons.access_time, title: 'Waiting Queue', trailing: '${waiting.length} waiting'),
@@ -144,9 +149,10 @@ class TokenQueueScreen extends StatelessWidget {
           Wrap(spacing: 6, runSpacing: 6, children: completed.map((t) => Chip(
             avatar: Text('#${t.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
             label: Text(t.name, style: const TextStyle(fontSize: 11)),
-            backgroundColor: QCutColors.surfaceVariant,
+            backgroundColor: QCutColors.surfaceContainer,
           )).toList()),
-      ]),
+        ]),
+      ),
     );
   }
 }
@@ -160,14 +166,14 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 18, color: QCutColors.navy),
+      Icon(icon, size: 18, color: QCutColors.primary),
       const SizedBox(width: 8),
-      Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: QCutColors.navy)),
+      Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: QCutColors.onSurface)),
       const Spacer(),
       if (trailing != null)
         Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: QCutColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
-          child: Text(trailing!, style: TextStyle(fontSize: 11, color: QCutColors.charcoal.withValues(alpha: 0.6)))),
+          decoration: BoxDecoration(color: QCutColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
+          child: Text(trailing!, style: const TextStyle(fontSize: 11, color: QCutColors.onSurfaceVariant))),
     ]);
   }
 }
@@ -180,10 +186,10 @@ class _EmptyServing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: QCutColors.surfaceVariant.withValues(alpha: 0.3),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: QCutColors.charcoal.withValues(alpha: 0.1))),
+      color: QCutColors.surfaceContainer.withValues(alpha: 0.3),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: QCutColors.outline.withValues(alpha: 0.1))),
       child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [
-        Text('No tokens currently being served.', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+        Text('No tokens currently being served.', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
         if (hasWaiting) ...[
           const SizedBox(height: 16),
           ElevatedButton.icon(
@@ -193,7 +199,6 @@ class _EmptyServing extends StatelessWidget {
             },
             icon: const Icon(Icons.play_arrow, size: 16),
             label: const Text('Call Next Token'),
-            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.navy, foregroundColor: Colors.white),
           ),
         ],
       ])),
@@ -209,31 +214,31 @@ class _ServingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: QCutColors.emerald, width: 2)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: QCutColors.success, width: 2)),
       elevation: 4,
       child: Column(children: [
         Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 4),
-          decoration: const BoxDecoration(color: QCutColors.emerald, borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
+          decoration: const BoxDecoration(color: QCutColors.success, borderRadius: BorderRadius.vertical(top: Radius.circular(14))),
           child: const Text('SERVING', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1))),
         Padding(padding: const EdgeInsets.all(16), child: Row(children: [
-          Container(width: 48, height: 48, decoration: const BoxDecoration(color: QCutColors.emeraldBg, shape: BoxShape.circle),
-            child: Center(child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.emerald)))),
+          Container(width: 48, height: 48, decoration: const BoxDecoration(color: QCutColors.surfaceContainer, shape: BoxShape.circle),
+            child: const Center(child: Text('#', style: TextStyle(fontWeight: FontWeight.bold, color: QCutColors.success)))),
           const SizedBox(width: 16),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(token.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: QCutColors.navy)),
-            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5), fontSize: 12)),
+            Text(token.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: QCutColors.onSurface)),
+            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7), fontSize: 12)),
           ])),
         ])),
         Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Row(children: [
           Expanded(child: ElevatedButton(onPressed: () async {
             await HapticService.trigger(HapticType.medium);
             onComplete();
-          }, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.emerald, foregroundColor: Colors.white), child: const Text('Complete'))),
+          }, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.success, foregroundColor: Colors.white), child: const Text('Complete'))),
           const SizedBox(width: 8),
           IconButton(onPressed: () async {
             await HapticService.trigger(HapticType.heavy);
             onNoShow();
-          }, style: IconButton.styleFrom(backgroundColor: QCutColors.surfaceVariant), icon: Icon(Icons.close, color: QCutColors.charcoal.withValues(alpha: 0.6))),
+          }, style: IconButton.styleFrom(backgroundColor: QCutColors.surfaceContainer), icon: const Icon(Icons.close, color: QCutColors.onSurfaceVariant)),
         ])),
       ]),
     );
@@ -249,7 +254,7 @@ class _WaitingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SwipeableListTile(
-      key: ValueKey('waiting-${token.id}'),
+      dismissibleKey: ValueKey('waiting-${token.id}'),
       onCancel: () async {
         await HapticService.trigger(HapticType.heavy);
         onCancel();
@@ -258,12 +263,12 @@ class _WaitingRow extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(children: [
-          SizedBox(width: 40, child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.navy))),
+          SizedBox(width: 40, child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.onSurface))),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.navy)),
-            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+            Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.onSurface)),
+            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
           ])),
-          IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: () async {
+          IconButton(icon: Icon(Icons.cancel, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.3)), onPressed: () async {
             await HapticService.trigger(HapticType.heavy);
             onCancel();
           }),
@@ -273,6 +278,7 @@ class _WaitingRow extends StatelessWidget {
   }
 }
 
+
 class _EmptyCard extends StatelessWidget {
   final String text;
   const _EmptyCard({required this.text});
@@ -280,9 +286,9 @@ class _EmptyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: QCutColors.surfaceVariant.withValues(alpha: 0.3),
+      color: QCutColors.surfaceContainer.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(text, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))))),
+      child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text(text, style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))))),
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qcut_flutter/domain/models/tenant.dart';
+import 'package:qcut_flutter/theme/app_theme.dart';
+import 'package:qcut_flutter/ui/core/q_logo_header.dart';
 
 class WebBookingPage extends StatefulWidget {
   final String shopSlug;
@@ -51,14 +53,33 @@ class _WebBookingPageState extends State<WebBookingPage> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: QCutColors.surface,
+        body: Center(child: CircularProgressIndicator(color: QCutColors.primary)),
+      );
     }
     if (_error != null) {
-      return Scaffold(body: Center(child: Text('Error: $_error')));
+      return const Scaffold(
+        backgroundColor: QCutColors.surface,
+        body: Center(child: Text('Error loading shop', style: TextStyle(color: QCutColors.onSurface))),
+      );
     }
     return Scaffold(
-      appBar: AppBar(title: Text(_tenant?.name ?? 'Shop')),
-      body: Center(child: Text('Booking flow for ${widget.shopSlug}')),
+      backgroundColor: QCutColors.surface,
+      appBar: AppBar(
+        title: QLogoHeader(height: 28, showText: false),
+        actions: [TextButton(onPressed: () {}, child: const Text('Help'))],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_tenant?.name ?? 'Shop', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurface)),
+            const SizedBox(height: 8),
+            Text('Booking flow for ${widget.shopSlug}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+          ],
+        ),
+      ),
     );
   }
 }

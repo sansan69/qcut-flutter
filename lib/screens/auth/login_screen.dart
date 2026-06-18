@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../services/auth_service.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 
 /// Admin Login — Sign In or Register Shop
@@ -31,7 +31,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _loading = true; _error = null; });
-    HapticFeedback.mediumImpact();
+    await HapticService.trigger(HapticType.medium);
 
     try {
       await widget.auth.signInWithEmail(_emailCtrl.text.trim(), _passCtrl.text);
@@ -61,14 +61,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 100),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      'Queue. Cut. Go.',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+                Text(
+                  'Queue. Cut. Go.',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurfaceVariant),
+                ),
                     const SizedBox(height: 32),
                   ],
                 ),
-                const Text('Admin Panel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
+                const Text('Admin Panel', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant)),
                 const SizedBox(height: 36),
 
                 // Error
@@ -76,11 +76,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     width: double.infinity, margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: QCutColors.redBg, borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: QCutColors.error.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                     child: Row(children: [
-                      const Icon(Icons.error_outline, color: QCutColors.red, size: 18),
+                      const Icon(Icons.error_outline, color: QCutColors.error, size: 18),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(_error!, style: const TextStyle(color: QCutColors.red, fontSize: 13))),
+                      Expanded(child: Text(_error!, style: const TextStyle(color: QCutColors.error, fontSize: 13))),
                     ]),
                   ),
 
@@ -116,7 +116,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity, height: 50,
                   child: ElevatedButton(
                     onPressed: _loading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(backgroundColor: QCutColors.navy, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     child: _loading
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                         : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 16),
 
                 // Register new shop
-                Text('New to Q-CUT?', style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+                Text('New to Q-CUT?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
                 const SizedBox(height: 12),
                 SizedBox(
                   width: double.infinity, height: 48,
@@ -139,11 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     },
                     icon: const Icon(Icons.store, size: 18),
                     label: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w600)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: QCutColors.purple,
-                      side: const BorderSide(color: QCutColors.purple),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
