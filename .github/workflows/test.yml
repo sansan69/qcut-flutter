@@ -8,14 +8,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      # The functions test suite is integration-style and requires a live
-      # Firestore emulator (see functions/test/helpers.ts → requireEmulator).
-      # Boot the emulator, wait for it to accept connections, run the tests,
-      # then let the job tear everything down.
+      # The Firestore emulator (used by the functions integration tests) needs
+      # a Java runtime. ubuntu-latest ships one, but we set it explicitly.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
-      - name: Start Firestore emulator
-        run: firebase emulators:start --only firestore &
-      - name: Wait for emulator
-        run: npx wait-on tcp:127.0.0.1:8080 -t 60000
-      - run: cd functions && npm ci && npm test
+      # `emulators:exec` starts the emulator, runs the command against it, then
+      # tears it down — no background-process or port-wait timing race.
+      - name: Install deps & run functions tests against emulator
+        run: cd functions && npm ci && firebase emulators:exec --only firestore "npm test"
