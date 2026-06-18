@@ -95,6 +95,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     if (_submitted && !_loading) return _SuccessScreen(onBackToHome: widget.onBackToHome);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('Join Q-CUT'),
         backgroundColor: const Color(0xFF4A148C),
@@ -135,7 +136,26 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: _buildStep(),
+            child: Column(
+              children: [
+                Column(
+                  children: [
+                    Image.asset(
+                      'assets/logo/logo_transparent.png',
+                      height: 120,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 120),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Queue. Cut. Go.',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+                _buildStep(),
+              ],
+            ),
           ),
         ),
 

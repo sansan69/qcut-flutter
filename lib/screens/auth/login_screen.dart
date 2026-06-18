@@ -53,13 +53,21 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 // Logo
-                Container(
-                  width: 72, height: 72,
-                  decoration: BoxDecoration(color: QCutColors.navy, borderRadius: BorderRadius.circular(18)),
-                  child: const Center(child: Text('Q', style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold))),
+                Column(
+                  children: [
+                    Image.asset(
+                      'assets/logo/logo_transparent.png',
+                      height: 100,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 100),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Queue. Cut. Go.',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                const Text('Q - CUT', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: QCutColors.navy)),
                 const Text('Admin Panel', style: TextStyle(fontSize: 14, color: Color(0xFF64748B))),
                 const SizedBox(height: 36),
 
