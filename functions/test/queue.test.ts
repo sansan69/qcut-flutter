@@ -74,6 +74,7 @@ describe('issueToken', () => {
   });
 
   test('issueToken estimates wait based on waiting ahead', async () => {
+    await metaDoc(tenantId).set({nextToken: 3});
     await createEntry(tenantId, {tokenNumber: 1, status: 'waiting'});
     await createEntry(tenantId, {tokenNumber: 2, status: 'waiting'});
 
@@ -107,7 +108,7 @@ describe('callNextToken', () => {
     const result = await callNextToken.run(mockRequest({tenantId}));
 
     expect(result.id).toBe(e1.id);
-    expect(result.entry.status).toBe('called');
+    expect(result.entry.status).toBe('serving');
     expect(result.entry.calledAt).toBeInstanceOf(
       admin.firestore.Timestamp,
     );

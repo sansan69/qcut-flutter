@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:qcut_flutter/data/repositories/booking_repository.dart';
 import 'package:qcut_flutter/domain/models/booking.dart';
@@ -19,7 +20,7 @@ class CalendarViewModel extends ChangeNotifier {
   List<Booking> get bookings => _bookings;
   bool get loading => _loading;
 
-  Stream<List<Booking>>? _subscription;
+  StreamSubscription<List<Booking>>? _subscription;
 
   void selectDate(DateTime date) {
     _selectedDate = date;

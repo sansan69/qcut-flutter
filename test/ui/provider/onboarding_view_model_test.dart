@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:qcut_flutter/data/repositories/auth_repository.dart';
@@ -8,13 +9,9 @@ class MockAuthRepository extends Mock implements AuthRepository {}
 
 class MockFirestoreService extends Mock implements FirestoreService {}
 
-class FakeUserCredential {
-  final FakeUser user = FakeUser();
-}
+class MockUserCredential extends Mock implements UserCredential {}
 
-class FakeUser {
-  final String uid = 'provider-uid-123';
-}
+class MockUser extends Mock implements User {}
 
 void main() {
   late OnboardingViewModel viewModel;
@@ -33,9 +30,12 @@ void main() {
   tearDown(() => viewModel.dispose());
 
   test('submit creates user and onboarding submission', () async {
-    final cred = FakeUserCredential();
+    final cred = MockUserCredential();
+    final user = MockUser();
+    when(() => user.uid).thenReturn('provider-uid-123');
+    when(() => cred.user).thenReturn(user);
     when(() => authRepository.signUpWithEmailAndPassword(any(), any()))
-        .thenAnswer((_) async => cred as dynamic);
+        .thenAnswer((_) async => cred);
     when(() => firestore.setDocument(any(), any(), any()))
         .thenAnswer((_) async {});
     when(() => firestore.addDocument(any(), any()))

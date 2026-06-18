@@ -38,8 +38,6 @@ if (admin.apps.length === 0) {
   admin.initializeApp({projectId});
 }
 
-const firestore = admin.firestore();
-
 /**
  * Minimal test environment metadata.
  */
@@ -70,25 +68,6 @@ export async function requireEmulator(): Promise<void> {
 }
 
 /**
- * Recursively deletes a Firestore document and its subcollections.
- *
- * @param {admin.firestore.DocumentReference} doc - The document to delete.
- * @return {Promise<void>}
- */
-async function deleteDocument(
-  doc: admin.firestore.DocumentReference,
-): Promise<void> {
-  const collections = await doc.listCollections();
-  await Promise.all(
-    collections.map(async (collection) => {
-      const snapshots = await collection.get();
-      await Promise.all(snapshots.docs.map((d) => deleteDocument(d.ref)));
-    }),
-  );
-  await doc.delete();
-}
-
-/**
  * Removes all data under a tenant for test isolation.
  *
  * @param {string} tenantId - The tenant ID to clean up.
@@ -96,6 +75,44 @@ async function deleteDocument(
  */
 export async function cleanupTenant(tenantId: string): Promise<void> {
   await requireEmulator();
+  const firestore = admin.firestore();
+
+  // Delete all entry docs under this tenant via collection group query.
+  const entriesSnap = await firestore
+    .collectionGroup('entries')
+    .where('tenantId', '==', tenantId)
+    .get();
+  const batch = firestore.batch();
+  for (const doc of entriesSnap.docs) {
+    batch.delete(doc.ref);
+  }
+
+  // Delete token date meta docs.
+  const tokensCol = firestore.collection(`tenants/${tenantId}/tokens`);
+  const tokensSnap = await tokensCol.get();
+  for (const doc of tokensSnap.docs) {
+    batch.delete(doc.ref);
+  }
+
+  // Delete the tenant doc itself.
   const tenantDoc = firestore.doc(`tenants/${tenantId}`);
-  await deleteDocument(tenantDoc);
+  batch.delete(tenantDoc);
+
+  await batch.commit();
+}
+
+/**
+ * Deletes all user documents created during tests.
+ *
+ * @return {Promise<void>}
+ */
+export async function cleanupUsers(): Promise<void> {
+  await requireEmulator();
+  const firestore = admin.firestore();
+  const snap = await firestore.collection('users').get();
+  const batch = firestore.batch();
+  for (const doc of snap.docs) {
+    batch.delete(doc.ref);
+  }
+  await batch.commit();
 }

@@ -1,6 +1,6 @@
 import * as admin from 'firebase-admin';
 import {getTokensToNotify} from '../src/notifications';
-import {cleanupTenant} from './helpers';
+import {cleanupTenant, cleanupUsers} from './helpers';
 
 const date = new Date().toISOString().slice(0, 10);
 
@@ -57,6 +57,7 @@ describe('getTokensToNotify', () => {
 
   beforeEach(async () => {
     await cleanupTenant(tenantId);
+    await cleanupUsers();
     userRefs = [];
   });
 

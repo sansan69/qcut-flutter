@@ -25,19 +25,23 @@ class AuthRouter extends StatefulWidget {
 }
 
 class _AuthRouterState extends State<AuthRouter> {
-  late final AuthRepository _authRepository;
+  AuthRepository? _authRepository;
 
   @override
   void initState() {
     super.initState();
-    final auth = FirebaseAuth.instance;
-    final functions = FunctionsService(FirebaseFunctions.instance);
-    _authRepository = AuthRepository(auth, functions);
+    try {
+      final auth = FirebaseAuth.instance;
+      final functions = FunctionsService(FirebaseFunctions.instance);
+      _authRepository = AuthRepository(auth, functions);
+    } catch (e) {
+      _authRepository = null;
+    }
   }
 
   Future<AppRole> _resolveRole(User? user) async {
     if (user == null) return AppRole.unknown;
-    final role = await _authRepository.resolveRole();
+    final role = await _authRepository!.resolveRole();
     switch (role) {
       case 'provider':
         return AppRole.provider;
@@ -52,8 +56,11 @@ class _AuthRouterState extends State<AuthRouter> {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?(>
-      stream: _authRepository.authStateChanges,
+    final repo = _authRepository;
+    if (repo == null) return widget.landingScreen;
+
+    return StreamBuilder<User?>(
+      stream: repo.authStateChanges,
       builder: (context, snapshot) {
         final user = snapshot.data;
         if (user == null) return widget.landingScreen;

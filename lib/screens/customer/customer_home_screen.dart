@@ -10,7 +10,7 @@ class CustomerHomeScreen extends StatefulWidget {
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   Future<void> _onScanPressed() async {
-    final url = await Navigator.of(context).push<String?(>(
+    final url = await Navigator.of(context).push<String?>(
       MaterialPageRoute(builder: (_) => const QrScannerScreen()),
     );
     if (!mounted || url == null) return;

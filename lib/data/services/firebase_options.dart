@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 /// Per-platform Firebase configuration.
 ///
@@ -7,6 +7,15 @@ import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatf
 /// the source of truth for the Android configuration.
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      if (_hasPlaceholders(web)) {
+        throw UnsupportedError(
+          'Web Firebase options contain placeholder values. '
+          'Fill them from the Firebase Console before releasing on web.',
+        );
+      }
+      return web;
+    }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
@@ -19,14 +28,6 @@ class DefaultFirebaseOptions {
           );
         }
         return ios;
-      case TargetPlatform.web:
-        if (_hasPlaceholders(web)) {
-          throw UnsupportedError(
-            'Web Firebase options contain placeholder values. '
-            'Fill them from the Firebase Console before releasing on web.',
-          );
-        }
-        return web;
       default:
         throw UnsupportedError(
           'DefaultFirebaseOptions are not supported for this platform.',
