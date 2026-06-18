@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:qcut_flutter/screens/common/qr_scanner_screen.dart';
+import 'package:qcut_flutter/ui/core/q_logo_header.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -23,7 +24,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('QCut')),
+      appBar: AppBar(
+        title: const QLogoHeader(height: 28),
+      ),
       body: const Center(
         child: Text('Customer home — browse shops, scan QR, view bookings'),
       ),
