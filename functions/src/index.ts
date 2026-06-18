@@ -38,11 +38,11 @@ export {
   callNextToken,
   completeToken,
   noShowToken,
-} from './queue';
+} from './queue.js';
 
 export {
   getAvailableSlots,
   createBooking,
   cancelBooking,
   convertBookingToToken,
-} from './booking';
+} from './booking.js';

@@ -60,14 +60,15 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.kalki.qcut',
   );
 
-  // TODO: Fill web values from the Firebase Console before releasing the web app.
+  // Web config for the existing Firebase web app "barberian".
+  // Source: Firebase Console / firebase apps:sdkconfig
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'FILL_FROM_FIREBASE_CONSOLE',
-    appId: '1:62682041153:web:FILL',
+    apiKey: 'AIzaSyDKbANTpWRJZpD_Az1GP6CSxPQyLIc8XwI',
+    appId: '1:62682041153:web:169da20c5e23f80f23efc0',
     messagingSenderId: '62682041153',
     projectId: 'appointment-32f4a',
     authDomain: 'appointment-32f4a.firebaseapp.com',
     storageBucket: 'appointment-32f4a.firebasestorage.app',
-    measurementId: 'FILL',
+    measurementId: 'G-XMVF46GEQ0',
   );
 }

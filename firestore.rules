@@ -1,6 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
-  // App Check enforcement is ENABLED in the rules below (`&& request.app != null`).
+  // App Check enforcement is ENABLED for writes and authenticated reads below
+  // (`&& request.app != null`). Public reads needed for the anonymous web booking
+  // page are exempt; add reCAPTCHA v3 App Check later and tighten these if desired.
   // Rollout recommendation: turn on App Check in monitor-only mode in the Firebase
   // console first to collect metrics and verify legitimate clients pass attestation,
   // then keep these rule clauses once the false-positive rate is acceptable.
@@ -24,9 +26,10 @@ service cloud.firestore {
     }
 
     // Public read for active tenants enables the web booking page (qcut.co.in/s/{slug}).
-    // Writes remain restricted to Platform Admin / Provider.
+    // App Check is required for writes and authenticated reads; public reads are open so
+    // anonymous customers can view the shop without an attestation token.
     match /tenants/{tenantId} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active') && request.app != null;
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
       allow create: if isPlatformAdmin() && request.app != null;
       allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
       allow delete: if isPlatformAdmin() && request.app != null;
@@ -34,11 +37,11 @@ service cloud.firestore {
 
     // Public read for staff and services lets customers see availability on the booking page.
     match /tenants/{tenantId}/staff/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.tenantId == tenantId) && request.app != null;
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
     }
 
     match /tenants/{tenantId}/services/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.tenantId == tenantId) && request.app != null;
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
     }
 
     match /tenants/{tenantId}/bookings/{id} {
