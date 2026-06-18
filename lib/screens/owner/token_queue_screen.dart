@@ -2,6 +2,57 @@ import 'package:flutter/material.dart';
 import '../../models/token_entry.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/swipeable_list_tile.dart';
+
+Future<void> _showTokenOptions(
+  BuildContext context, {
+  required TokenEntry token,
+  required bool isServing,
+  VoidCallback? onComplete,
+  VoidCallback? onNoShow,
+  VoidCallback? onCancel,
+}) async {
+  final action = await showDialog<String>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('#${token.tokenNumber} ${token.name}'),
+      content: const Text('Choose an action'),
+      actions: [
+        if (isServing) ...[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('complete'),
+            child: const Text('Complete'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('noshow'),
+            child: const Text('No-show'),
+          ),
+        ] else ...[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop('cancel'),
+            child: const Text('Cancel'),
+          ),
+        ],
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+
+  switch (action) {
+    case 'complete':
+      await HapticService.trigger(HapticType.medium);
+      onComplete?.call();
+    case 'noshow':
+      await HapticService.trigger(HapticType.heavy);
+      onNoShow?.call();
+    case 'cancel':
+      await HapticService.trigger(HapticType.heavy);
+      onCancel?.call();
+  }
+}
 
 /// Token Queue Dashboard — ported from QCUT Kotlin TokenQueueDashboard.kt
 class TokenQueueScreen extends StatelessWidget {
@@ -36,7 +87,25 @@ class TokenQueueScreen extends StatelessWidget {
         else
           ...serving.map((t) => Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: _ServingCard(token: t, onComplete: () => onComplete(t), onNoShow: () => onNoShow(t)),
+            child: SwipeableListTile(
+              key: ValueKey('serving-${t.id}'),
+              onComplete: () async {
+                await HapticService.trigger(HapticType.medium);
+                onComplete(t);
+              },
+              onCancel: () async {
+                await HapticService.trigger(HapticType.heavy);
+                onNoShow(t);
+              },
+              onLongPress: () => _showTokenOptions(
+                context,
+                token: t,
+                isServing: true,
+                onComplete: () => onComplete(t),
+                onNoShow: () => onNoShow(t),
+              ),
+              child: _ServingCard(token: t, onComplete: () => onComplete(t), onNoShow: () => onNoShow(t)),
+            ),
           )),
 
         const SizedBox(height: 24),
@@ -50,7 +119,16 @@ class TokenQueueScreen extends StatelessWidget {
             child: Column(
               children: waiting.asMap().entries.map((e) => Column(
                 children: [
-                  _WaitingRow(token: e.value, onCancel: () => onCancel(e.value)),
+                  _WaitingRow(
+                    token: e.value,
+                    onCancel: () => onCancel(e.value),
+                    onLongPress: () => _showTokenOptions(
+                      context,
+                      token: e.value,
+                      isServing: false,
+                      onCancel: () => onCancel(e.value),
+                    ),
+                  ),
                   if (e.key < waiting.length - 1) const Divider(height: 1),
                 ],
               )).toList(),
@@ -165,23 +243,32 @@ class _ServingCard extends StatelessWidget {
 class _WaitingRow extends StatelessWidget {
   final TokenEntry token;
   final VoidCallback onCancel;
-  const _WaitingRow({required this.token, required this.onCancel});
+  final VoidCallback? onLongPress;
+  const _WaitingRow({required this.token, required this.onCancel, this.onLongPress});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(children: [
-        SizedBox(width: 40, child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.navy))),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.navy)),
-          if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
-        ])),
-        IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: () async {
-          await HapticService.trigger(HapticType.heavy);
-          onCancel();
-        }),
-      ]),
+    return SwipeableListTile(
+      key: ValueKey('waiting-${token.id}'),
+      onCancel: () async {
+        await HapticService.trigger(HapticType.heavy);
+        onCancel();
+      },
+      onLongPress: onLongPress,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(children: [
+          SizedBox(width: 40, child: Text('#${token.tokenNumber}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.navy))),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.navy)),
+            if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+          ])),
+          IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: () async {
+            await HapticService.trigger(HapticType.heavy);
+            onCancel();
+          }),
+        ]),
+      ),
     );
   }
 }
