@@ -23,7 +23,12 @@ import 'screens/customer/join_queue_screen.dart';
 import 'screens/customer/my_bookings_screen.dart';
 import 'screens/customer/booking_screen.dart';
 import 'screens/common/qr_screen.dart';
+import 'screens/customer/customer_home_screen.dart';
+import 'screens/provider/provider_dashboard_screen.dart';
 import 'screens/super_admin/super_admin_dashboard.dart';
+import 'screens/super_admin/super_admin_dashboard_placeholder.dart';
+import 'ui/core/auth_router.dart';
+import 'ui/core/auth_landing_screen.dart';
 import 'screens/super_admin/create_tenant_screen.dart';
 import 'screens/super_admin/tenant_detail_screen.dart';
 import 'screens/super_admin/onboarding_queue_screen.dart';
@@ -64,7 +69,12 @@ class QCutApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const AppRoot(),
+      home: const AuthRouter(
+        landingScreen: AuthLandingScreen(),
+        customerHome: CustomerHomeScreen(),
+        providerDashboard: ProviderDashboardScreen(),
+        platformAdminDashboard: SuperAdminDashboardPlaceholder(),
+      ),
     );
   }
 }
