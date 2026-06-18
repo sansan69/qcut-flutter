@@ -23,19 +23,22 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.role == 'customer';
     }
 
+    // Public read for active tenants enables the web booking page (qcut.co.in/s/{slug}).
+    // Writes remain restricted to Platform Admin / Provider.
     match /tenants/{tenantId} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active') && request.app != null;
       allow create: if isPlatformAdmin() && request.app != null;
       allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
       allow delete: if isPlatformAdmin() && request.app != null;
     }
 
+    // Public read for staff and services lets customers see availability on the booking page.
     match /tenants/{tenantId}/staff/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.tenantId == tenantId) && request.app != null;
     }
 
     match /tenants/{tenantId}/services/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.tenantId == tenantId) && request.app != null;
     }
 
     match /tenants/{tenantId}/bookings/{id} {
