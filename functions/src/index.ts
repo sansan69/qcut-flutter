@@ -39,3 +39,10 @@ export {
   completeToken,
   noShowToken,
 } from './queue';
+
+export {
+  getAvailableSlots,
+  createBooking,
+  cancelBooking,
+  convertBookingToToken,
+} from './booking';

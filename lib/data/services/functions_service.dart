@@ -10,6 +10,7 @@ class FunctionsService {
   static const String callNextToken = 'callNextToken';
   static const String completeToken = 'completeToken';
   static const String noShowToken = 'noShowToken';
+  static const String getAvailableSlots = 'getAvailableSlots';
   static const String createBooking = 'createBooking';
   static const String cancelBooking = 'cancelBooking';
   static const String convertBookingToToken = 'convertBookingToToken';
