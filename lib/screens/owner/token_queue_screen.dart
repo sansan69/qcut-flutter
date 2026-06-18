@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/token_entry.dart';
+import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
 
 /// Token Queue Dashboard — ported from QCUT Kotlin TokenQueueDashboard.kt
@@ -108,7 +109,10 @@ class _EmptyServing extends StatelessWidget {
         if (hasWaiting) ...[
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: onCallNext,
+            onPressed: () async {
+              await HapticService.trigger(HapticType.medium);
+              onCallNext();
+            },
             icon: const Icon(Icons.play_arrow, size: 16),
             label: const Text('Call Next Token'),
             style: ElevatedButton.styleFrom(backgroundColor: QCutColors.navy, foregroundColor: Colors.white),
@@ -143,9 +147,15 @@ class _ServingCard extends StatelessWidget {
           ])),
         ])),
         Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 16), child: Row(children: [
-          Expanded(child: ElevatedButton(onPressed: onComplete, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.emerald, foregroundColor: Colors.white), child: const Text('Complete'))),
+          Expanded(child: ElevatedButton(onPressed: () async {
+            await HapticService.trigger(HapticType.medium);
+            onComplete();
+          }, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.emerald, foregroundColor: Colors.white), child: const Text('Complete'))),
           const SizedBox(width: 8),
-          IconButton(onPressed: onNoShow, style: IconButton.styleFrom(backgroundColor: QCutColors.surfaceVariant), icon: Icon(Icons.close, color: QCutColors.charcoal.withValues(alpha: 0.6))),
+          IconButton(onPressed: () async {
+            await HapticService.trigger(HapticType.heavy);
+            onNoShow();
+          }, style: IconButton.styleFrom(backgroundColor: QCutColors.surfaceVariant), icon: Icon(Icons.close, color: QCutColors.charcoal.withValues(alpha: 0.6))),
         ])),
       ]),
     );
@@ -167,7 +177,10 @@ class _WaitingRow extends StatelessWidget {
           Text(token.name, style: const TextStyle(fontWeight: FontWeight.w500, color: QCutColors.navy)),
           if (token.phone.isNotEmpty) Text(token.phone, style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
         ])),
-        IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: onCancel),
+        IconButton(icon: Icon(Icons.cancel, color: QCutColors.charcoal.withValues(alpha: 0.2)), onPressed: () async {
+          await HapticService.trigger(HapticType.heavy);
+          onCancel();
+        }),
       ]),
     );
   }
