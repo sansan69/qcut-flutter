@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// QR Code display for shop booking link — shareable, downloadable
+/// QR Code display for shop booking link — shareable, downloadable.
+/// The QR canvas itself stays white for reliable scanning; everything around
+/// it speaks the dark brand language.
 class ShopQRScreen extends StatelessWidget {
   final String shopName;
   final String bookingUrl;
@@ -20,15 +23,10 @@ class ShopQRScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Shop QR Code'),
-        backgroundColor: QCutColors.navy,
-        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () => Share.share(
-              'Book with $shopName — $bookingUrl',
-              subject: 'Book at $shopName',
-            ),
+            onPressed: () => Share.share('Book with $shopName — $bookingUrl', subject: 'Book at $shopName'),
             tooltip: 'Share',
           ),
         ],
@@ -37,134 +35,81 @@ class ShopQRScreen extends StatelessWidget {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            // QR Card
-            Card(
-              elevation: 12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            Container(
+              decoration: BoxDecoration(
+                color: QCutColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: QCutColors.outlineVariant),
+                boxShadow: QCutShadows.soft(),
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(28),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
-                  // Shop name above QR
-                  Text(shopName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+                  Text(shopName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
                   const SizedBox(height: 4),
-                  Text('Scan to book', style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+                  Text('Scan to book', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant)),
                   const SizedBox(height: 24),
-                  // QR code
                   Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: QCutColors.surfaceVariant, width: 3),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: QCutColors.outlineVariant),
                     ),
                     padding: const EdgeInsets.all(16),
                     child: QrImageView(
                       data: bookingUrl,
                       version: QrVersions.auto,
-                      size: 280,
+                      size: 264,
                       backgroundColor: Colors.white,
-                      eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: QCutColors.navy),
-                      dataModuleStyle: const QrDataModuleStyle(
-                        dataModuleShape: QrDataModuleShape.circle,
-                        color: QCutColors.navy,
-                      ),
+                      eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: QCutColors.primary),
+                      dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: QCutColors.primary),
                       gapless: true,
                     ),
                   ),
                   const SizedBox(height: 24),
-                  // URL below QR
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: QCutColors.surfaceVariant,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    decoration: BoxDecoration(color: QCutColors.primaryTint, borderRadius: BorderRadius.circular(12)),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.link, size: 16, color: QCutColors.purple),
+                      const Icon(Icons.link, size: 16, color: QCutColors.primary),
                       const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(bookingUrl, style: const TextStyle(fontSize: 13, color: QCutColors.purple, fontWeight: FontWeight.w500)),
-                      ),
+                      Flexible(child: Text(bookingUrl, style: const TextStyle(fontSize: 13, color: QCutColors.primary, fontWeight: FontWeight.w600))),
                     ]),
                   ),
                 ]),
               ),
             ),
-            const SizedBox(height: 32),
-
-            // Action buttons
+            const SizedBox(height: 28),
             Row(children: [
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.share,
-                  label: 'Share Link',
-                  color: QCutColors.purple,
-                  onTap: () => Share.share(
-                    'Book with $shopName — $bookingUrl',
-                    subject: 'Book at $shopName',
-                  ),
-                ),
-              ),
+              Expanded(child: QPrimaryButton(
+                onPressed: () => Share.share('Book with $shopName — $bookingUrl', subject: 'Book at $shopName'),
+                icon: Icons.share,
+                height: 50,
+                child: const Text('Share Link'),
+              )),
               const SizedBox(width: 12),
-              Expanded(
-                child: _ActionButton(
-                  icon: Icons.copy,
-                  label: 'Copy Link',
-                  color: QCutColors.navy,
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: bookingUrl));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Booking link copied!'), duration: Duration(seconds: 2)),
-                    );
-                  },
-                ),
-              ),
+              Expanded(child: QTonalButton(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: bookingUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Booking link copied!'), duration: Duration(seconds: 2)));
+                },
+                icon: Icons.copy,
+                expand: true,
+                child: const Text('Copy Link'),
+              )),
             ]),
             const SizedBox(height: 16),
-
-            // Print / display tip
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: QCutColors.amberBg,
-                borderRadius: BorderRadius.circular(12),
-              ),
+              decoration: BoxDecoration(color: QCutColors.warningTint, borderRadius: BorderRadius.circular(14), border: Border.all(color: QCutColors.warning.withValues(alpha: 0.3))),
               child: Row(children: [
-                const Icon(Icons.lightbulb_outline, color: QCutColors.amber, size: 20),
+                const Icon(Icons.lightbulb_outline, color: QCutColors.warning, size: 20),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Print this QR code and display at your shop counter for customers to scan and book.',
-                    style: TextStyle(fontSize: 13, color: QCutColors.amber, height: 1.4),
-                  ),
-                ),
+                Expanded(child: Text('Print this QR code and display at your shop counter for customers to scan and book.',
+                    style: TextStyle(fontSize: 13, color: QCutColors.warning.withValues(alpha: 0.9), height: 1.4))),
               ]),
             ),
           ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionButton({required this.icon, required this.label, required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

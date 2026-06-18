@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/shop_models.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Super Admin: Create new tenant with plan selection
+/// Super Admin: Create new tenant with plan selection.
 class CreateTenantScreen extends StatefulWidget {
   final Function(Map<String, dynamic>) onCreate;
 
@@ -63,59 +64,28 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Tenant'),
-        backgroundColor: const Color(0xFF1A0033),
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Create Tenant')),
       body: Form(
         key: _formKey,
-        child: ListView(padding: const EdgeInsets.all(16), children: [
-          // ── Business Info ──
-          _SectionTitle('Business Information'),
+        child: ListView(padding: const EdgeInsets.all(20), children: [
+          QSectionLabel(icon: Icons.store, title: 'Business Information'),
           const SizedBox(height: 12),
-          TextFormField(
-            controller: _nameCtrl,
-            decoration: _deco('Business Name *', 'e.g. Rajesh Salon'),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-          ),
+          TextFormField(controller: _nameCtrl, decoration: _deco('Business Name *', 'e.g. Rajesh Salon'), validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _emailCtrl,
-            decoration: _deco('Owner Email (Gmail) *', 'owner@gmail.com'),
-            keyboardType: TextInputType.emailAddress,
-            validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
-          ),
+          TextFormField(controller: _emailCtrl, decoration: _deco('Owner Email (Gmail) *', 'owner@gmail.com'), keyboardType: TextInputType.emailAddress, validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _phoneCtrl,
-            decoration: _deco('Business Phone *', '9876543210'),
-            keyboardType: TextInputType.phone,
-            validator: (v) => (v == null || v.length < 10) ? '10 digits required' : null,
-          ),
+          TextFormField(controller: _phoneCtrl, decoration: _deco('Business Phone *', '9876543210'), keyboardType: TextInputType.phone, validator: (v) => (v == null || v.length < 10) ? '10 digits required' : null),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _ownerNameCtrl,
-            decoration: _deco('Owner Name', 'e.g. Rajesh Kumar'),
-          ),
+          TextFormField(controller: _ownerNameCtrl, decoration: _deco('Owner Name', 'e.g. Rajesh Kumar')),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _ownerPhoneCtrl,
-            decoration: _deco('Owner Phone', '9876543210'),
-            keyboardType: TextInputType.phone,
-          ),
+          TextFormField(controller: _ownerPhoneCtrl, decoration: _deco('Owner Phone', '9876543210'), keyboardType: TextInputType.phone),
           const SizedBox(height: 14),
-          TextFormField(
-            controller: _addressCtrl,
-            decoration: _deco('Address', 'Street, City, District'),
-            maxLines: 2,
-          ),
-
+          TextFormField(controller: _addressCtrl, decoration: _deco('Address', 'Street, City, District'), maxLines: 2),
           const SizedBox(height: 14),
-          // Business type
           DropdownButtonFormField<String>(
             value: _businessType,
             decoration: _deco('Business Type', ''),
+            dropdownColor: QCutColors.surfaceContainerHigh,
             items: const [
               DropdownMenuItem(value: 'salon', child: Text('Salon')),
               DropdownMenuItem(value: 'barbershop', child: Text('Barbershop')),
@@ -128,8 +98,7 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
           ),
 
           const SizedBox(height: 24),
-          // ── Booking Mode ──
-          _SectionTitle('Booking Mode'),
+          QSectionLabel(icon: Icons.event, title: 'Booking Mode'),
           const SizedBox(height: 12),
           SegmentedButton<String>(
             segments: const [
@@ -140,54 +109,40 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
             onSelectionChanged: (v) => setState(() => _bookingMode = v.first),
           ),
 
-          // Hours (for token mode)
           if (_bookingMode == 'token') ...[
             const SizedBox(height: 14),
             Row(children: [
-              Expanded(child: TextFormField(
-                initialValue: _openTime,
-                decoration: _deco('Open', '09:00'),
-                onChanged: (v) => _openTime = v,
-              )),
+              Expanded(child: TextFormField(initialValue: _openTime, decoration: _deco('Open', '09:00'), onChanged: (v) => _openTime = v)),
               const SizedBox(width: 12),
-              Expanded(child: TextFormField(
-                initialValue: _closeTime,
-                decoration: _deco('Close', '21:00'),
-                onChanged: (v) => _closeTime = v,
-              )),
+              Expanded(child: TextFormField(initialValue: _closeTime, decoration: _deco('Close', '21:00'), onChanged: (v) => _closeTime = v)),
             ]),
           ],
 
           const SizedBox(height: 24),
-          // ── Subscription Plan ──
-          _SectionTitle('Subscription Plan'),
+          QSectionLabel(icon: Icons.workspace_premium, title: 'Subscription Plan'),
           const SizedBox(height: 12),
-          ...SubscriptionPlan.values.map((p) => _PlanCard(
-            plan: p, isSelected: _planLevel == p.level,
+          ...SubscriptionPlan.values.map((p) => QSelectionTile(
+            selected: _planLevel == p.level,
             onTap: () => setState(() => _planLevel = p.level),
+            leading: QIconChip(icon: Icons.workspace_premium, color: _planLevel == p.level ? QCutColors.primary : QCutColors.onSurfaceVariant, size: 44),
+            title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: QCutColors.onSurface)),
+            subtitle: Text('${planMax(p)} • ₹${p.price}/mo', style: const TextStyle(fontSize: 12, color: QCutColors.onSurfaceVariant)),
           )),
 
-          const SizedBox(height: 32),
-          // ── Submit ──
+          const SizedBox(height: 28),
           if (_error != null)
             Container(
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(color: QCutColors.redBg, borderRadius: BorderRadius.circular(10)),
-              child: Text(_error!, style: const TextStyle(color: QCutColors.red, fontSize: 13)),
+              decoration: BoxDecoration(color: QCutColors.errorTint, borderRadius: BorderRadius.circular(10), border: Border.all(color: QCutColors.error.withValues(alpha: 0.4))),
+              child: Text(_error!, style: const TextStyle(color: QCutColors.error, fontSize: 13)),
             ),
-          SizedBox(
-            width: double.infinity, height: 50,
-            child: ElevatedButton(
-              onPressed: _saving ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: QCutColors.purple, foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: _saving
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                  : const Text('Create Tenant', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            ),
+          QPrimaryButton(
+            onPressed: _saving ? null : _submit,
+            icon: _saving ? null : Icons.check,
+            child: _saving
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                : const Text('Create Tenant'),
           ),
           const SizedBox(height: 32),
         ]),
@@ -195,59 +150,7 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
     );
   }
 
-  InputDecoration _deco(String label, String hint) => InputDecoration(
-    labelText: label, hintText: hint,
-    border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-  );
-}
+  String planMax(SubscriptionPlan p) => '${p.maxBarbers} barbers • ${p.maxServices} services • ${p.appointments ? "Appointments" : "Token only"}';
 
-class _SectionTitle extends StatelessWidget {
-  final String text;
-  const _SectionTitle(this.text);
-  @override
-  Widget build(BuildContext context) {
-    return Text(text, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: QCutColors.navy));
-  }
-}
-
-class _PlanCard extends StatelessWidget {
-  final SubscriptionPlan plan;
-  final bool isSelected;
-  final VoidCallback onTap;
-  const _PlanCard({required this.plan, required this.isSelected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(color: isSelected ? QCutColors.purple : Colors.transparent, width: 2),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: isSelected ? QCutColors.purpleBg : QCutColors.surfaceVariant, borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text('₹${plan.price}', style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? QCutColors.purple : QCutColors.charcoal))),
-            ),
-            const SizedBox(width: 14),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(plan.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: QCutColors.navy)),
-              const SizedBox(height: 2),
-              Text('${plan.maxBarbers} barbers • ${plan.maxServices} services • ${plan.appointments ? "Appointments" : "Token only"}',
-                style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.5))),
-            ])),
-            if (isSelected)
-              Container(width: 28, height: 28, decoration: const BoxDecoration(color: QCutColors.purple, shape: BoxShape.circle),
-                child: const Icon(Icons.check, color: Colors.white, size: 16)),
-          ]),
-        ),
-      ),
-    );
-  }
+  InputDecoration _deco(String label, String hint) => InputDecoration(labelText: label, hintText: hint);
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/shop_models.dart';
+import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Owner dashboard — shows plan badge and gated features
+/// Owner dashboard — branded gradient header, KPI row, and quick-action cards.
 class OwnerDashboardScreen extends StatelessWidget {
   final Tenant tenant;
   final VoidCallback onOpenQueue;
@@ -34,91 +36,80 @@ class OwnerDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(tenant.name),
-        backgroundColor: colors.primary,
-        foregroundColor: colors.onPrimary,
-        actions: [
-          // Plan badge
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: _planColor(plan).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
+      backgroundColor: QCutColors.surface,
+      body: ListView(padding: EdgeInsets.zero, children: [
+        // ── Branded gradient header ──
+        Container(
+          decoration: const BoxDecoration(gradient: QCutGradients.hero),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 24),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Welcome back', style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 2),
+                    Text(tenant.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.2), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ])),
+                  QCountChip(label: plan.name, color: _planColor(plan), filled: true),
+                  IconButton(icon: const Icon(Icons.logout, color: Colors.white70), onPressed: onSignOut, tooltip: 'Sign out'),
+                ]),
+                const SizedBox(height: 24),
+                // KPI row
+                Row(children: [
+                  QStatCard(value: waitingCount.toString(), label: 'Waiting', color: QCutColors.primary, icon: Icons.hourglass_top),
+                  const SizedBox(width: 10),
+                  QStatCard(value: servingCount.toString(), label: 'Serving', color: QCutColors.success, icon: Icons.cut),
+                  const SizedBox(width: 10),
+                  QStatCard(value: completedCount.toString(), label: 'Done', color: QCutColors.secondary, icon: Icons.check_circle),
+                ]),
+              ]),
             ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text(plan.name, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _planColor(plan))),
-            ]),
           ),
-          IconButton(icon: const Icon(Icons.logout), onPressed: onSignOut, tooltip: 'Sign out'),
-          IconButton(icon: const Icon(Icons.settings), onPressed: onOpenSettings),
-        ],
-      ),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        // Stats row
-        Row(children: [
-          _StatCard(label: 'Waiting', value: waitingCount.toString(), color: colors.primary),
-          const SizedBox(width: 12),
-          _StatCard(label: 'Serving', value: servingCount.toString(), color: const Color(0xFF10B981)),
-          const SizedBox(width: 12),
-          _StatCard(label: 'Completed', value: completedCount.toString(), color: const Color(0xFF7C3AED)),
-        ]),
-        const SizedBox(height: 24),
+        ),
 
-        Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        _ActionCard(icon: Icons.format_list_numbered, title: 'Token Queue', subtitle: 'Now Serving / Waiting / Completed', onTap: onOpenQueue),
-        _ActionCard(
-          icon: Icons.calendar_month,
-          title: 'Bookings',
-          subtitle: plan.appointments ? 'Appointments & calendar' : 'Upgrade to Pro/Clinic',
-          locked: !plan.appointments,
-          onTap: onOpenBookings,
+        // ── Quick actions ──
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+          child: QSectionLabel(icon: Icons.bolt, title: 'Quick Actions'),
         ),
-        _ActionCard(icon: Icons.people, title: 'Staff', subtitle: 'Manage barbers & schedule', onTap: onOpenStaff),
-        _ActionCard(
-          icon: Icons.qr_code,
-          title: 'Shop QR',
-          subtitle: plan.qrCode ? 'Display for customer scanning' : 'Upgrade to Pro/Clinic',
-          locked: !plan.qrCode,
-          onTap: onOpenQR,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(children: [
+            _ActionCard(icon: Icons.format_list_numbered, title: 'Token Queue', subtitle: 'Now Serving / Waiting / Completed', onTap: onOpenQueue, accent: QCutColors.primary),
+            _ActionCard(
+              icon: Icons.calendar_month,
+              title: 'Bookings',
+              subtitle: plan.appointments ? 'Appointments & calendar' : 'Upgrade to Pro/Clinic',
+              locked: !plan.appointments,
+              onTap: onOpenBookings,
+              accent: QCutColors.secondary,
+            ),
+            _ActionCard(icon: Icons.people, title: 'Staff', subtitle: 'Manage barbers & schedule', onTap: onOpenStaff, accent: QCutColors.success),
+            _ActionCard(
+              icon: Icons.qr_code,
+              title: 'Shop QR',
+              subtitle: plan.qrCode ? 'Display for customer scanning' : 'Upgrade to Pro/Clinic',
+              locked: !plan.qrCode,
+              onTap: onOpenQR,
+              accent: QCutColors.info,
+            ),
+            _ActionCard(icon: Icons.bar_chart, title: 'Reports', subtitle: 'Daily stats & analytics', onTap: onOpenReports, accent: QCutColors.warning),
+          ]),
         ),
-        _ActionCard(icon: Icons.bar_chart, title: 'Reports', subtitle: 'Daily stats & analytics', onTap: onOpenReports),
+        const SizedBox(height: 24),
       ]),
     );
   }
 
   Color _planColor(SubscriptionPlan p) {
     switch (p.level) {
-      case 1: return const Color(0xFF7C3AED); // Pro
-      case 2: return const Color(0xFF0284C7); // Clinic
-      default: return const Color(0xFF64748B); // Starter
+      case 1: return QCutColors.secondary; // Pro
+      case 2: return QCutColors.info; // Clinic
+      default: return QCutColors.onSurfaceVariant; // Starter
     }
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label, value;
-  final Color color;
-  const _StatCard({required this.label, required this.value, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(children: [
-            Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: color)),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-          ]),
-        ),
-      ),
-    );
   }
 }
 
@@ -127,29 +118,39 @@ class _ActionCard extends StatelessWidget {
   final String title, subtitle;
   final bool locked;
   final VoidCallback onTap;
-  const _ActionCard({required this.icon, required this.title, required this.subtitle, this.locked = false, required this.onTap});
+  final Color accent;
+
+  const _ActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.locked = false,
+    required this.onTap,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(locked ? Icons.lock : icon, color: locked ? Colors.grey[400] : Theme.of(context).colorScheme.primary),
-        title: Row(children: [
-          Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: locked ? Colors.grey : null)),
-          if (locked) ...[
-            const SizedBox(width: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFF7C3AED).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-              child: const Text('PRO', style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Color(0xFF7C3AED))),
-            ),
-          ],
-        ]),
-        subtitle: Text(subtitle, style: TextStyle(color: locked ? Colors.grey[400] : null)),
-        trailing: const Icon(Icons.chevron_right),
-        onTap: onTap,
-      ),
+    final color = locked ? QCutColors.onSurfaceVariant : accent;
+    return QGlassCard(
+      margin: const EdgeInsets.only(bottom: 10),
+      onTap: onTap,
+      child: Row(children: [
+        QIconChip(icon: locked ? Icons.lock : icon, color: color, size: 46),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: locked ? QCutColors.onSurfaceVariant : QCutColors.onSurface)),
+            if (locked) ...[
+              const SizedBox(width: 8),
+              QCountChip(label: 'PRO', color: QCutColors.secondary),
+            ],
+          ]),
+          const SizedBox(height: 2),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: QCutColors.onSurfaceVariant, height: 1.3)),
+        ])),
+        Icon(Icons.chevron_right, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.5)),
+      ]),
     );
   }
 }

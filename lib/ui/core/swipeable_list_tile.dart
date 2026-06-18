@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 
+/// A swipeable row wrapping [child]. Swipe right → [onComplete] (green),
+/// swipe left → [onCancel] (red). Both surface a confirm dialog. Haptics
+/// are triggered by the caller on the action callbacks.
 class SwipeableListTile extends StatelessWidget {
   final Key dismissibleKey;
   final Widget child;
@@ -21,18 +24,11 @@ class SwipeableListTile extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: QCutColors.surfaceContainer,
-        title: Text(title, style: const TextStyle(color: QCutColors.onSurface)),
-        content: Text(message, style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+        title: Text(title),
+        content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Confirm'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Confirm')),
         ],
       ),
     );
@@ -58,20 +54,30 @@ class SwipeableListTile extends StatelessWidget {
         }
       },
       background: Container(
-        color: QCutColors.success,
+        decoration: BoxDecoration(
+          gradient: QCutGradients.success,
+          borderRadius: BorderRadius.circular(16),
+        ),
         alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        child: const Icon(Icons.check, color: Colors.white),
+        padding: const EdgeInsets.only(left: 24),
+        child: const Icon(Icons.check_circle, color: Colors.white, size: 28),
       ),
       secondaryBackground: Container(
-        color: QCutColors.error,
+        decoration: BoxDecoration(
+          gradient: QCutGradients.danger,
+          borderRadius: BorderRadius.circular(16),
+        ),
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        child: const Icon(Icons.cancel, color: Colors.white),
+        padding: const EdgeInsets.only(right: 24),
+        child: const Icon(Icons.cancel, color: Colors.white, size: 28),
       ),
-      child: InkWell(
-        onLongPress: onLongPress,
-        child: child,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onLongPress: onLongPress,
+          borderRadius: BorderRadius.circular(16),
+          child: child,
+        ),
       ),
     );
   }

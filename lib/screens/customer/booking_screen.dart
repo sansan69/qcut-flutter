@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import '../../models/booking.dart';
 import '../../models/shop_models.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Full booking flow — date picker, time slots, barber, service, confirmation
+/// Full booking flow — date picker, time slots, barber, service, confirmation.
 class BookingScreen extends StatefulWidget {
   final List<Barber> barbers;
   final List<Service> services;
@@ -29,7 +30,6 @@ class _BookingScreenState extends State<BookingScreen> {
   int _step = 0;
   static const _steps = ['Service', 'Date & Time', 'Barber', 'Details', 'Confirm'];
 
-  // Selections
   Service? _selectedService;
   DateTime? _selectedDate;
   String? _selectedTimeSlot;
@@ -39,7 +39,6 @@ class _BookingScreenState extends State<BookingScreen> {
   final _formKey = GlobalKey<FormState>();
   String? _error;
 
-  // Time slots (30-min intervals from 9:00 to 20:30)
   List<String> get _timeSlots {
     final slots = <String>[];
     for (int h = 9; h < 21; h++) {
@@ -49,7 +48,6 @@ class _BookingScreenState extends State<BookingScreen> {
     return slots;
   }
 
-  // Available dates (next 30 days, no Sundays)
   List<DateTime> get _availableDates {
     final dates = <DateTime>[];
     final today = DateTime.now();
@@ -106,53 +104,44 @@ class _BookingScreenState extends State<BookingScreen> {
       createdAt: DateTime.now(),
     );
     widget.onBook(booking);
-
-    // Show confirmation
     setState(() => _step = 5);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Confirmation screen
     if (_step == 5) {
       return _ConfirmationScreen(
-      service: _selectedService!.name,
-      date: _formatDate(_selectedDate!),
-      time: _selectedTimeSlot!,
-      barber: _selectedBarber!.name,
-      name: _nameCtrl.text.trim(),
-      onDone: () => Navigator.pop(context),
-    );
+        service: _selectedService!.name,
+        date: _formatDate(_selectedDate!),
+        time: _selectedTimeSlot!,
+        barber: _selectedBarber!.name,
+        name: _nameCtrl.text.trim(),
+        onDone: () => Navigator.pop(context),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Book — ${widget.tenantName}'),
-        backgroundColor: QCutColors.navy,
-        foregroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(_step > 0 ? Icons.arrow_back : Icons.close),
           onPressed: _step > 0 ? _prev : () => Navigator.pop(context),
         ),
       ),
       body: Column(children: [
-        // Step indicator
         _StepIndicator(currentStep: _step, steps: _steps),
-        // Error
         if (_error != null)
           Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
+            margin: const EdgeInsets.symmetric(horizontal: 20),
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: QCutColors.redBg, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: QCutColors.errorTint, borderRadius: BorderRadius.circular(10), border: Border.all(color: QCutColors.error.withValues(alpha: 0.4))),
             child: Row(children: [
-              const Icon(Icons.info_outline, color: QCutColors.red, size: 16),
+              const Icon(Icons.info_outline, color: QCutColors.error, size: 16),
               const SizedBox(width: 8),
-              Text(_error!, style: const TextStyle(color: QCutColors.red, fontSize: 13)),
+              Text(_error!, style: const TextStyle(color: QCutColors.error, fontSize: 13)),
             ]),
           ),
-        // Content
         Expanded(child: _buildStep()),
-        // Bottom nav
         _BottomBar(
           canProceed: _canProceed(),
           isLast: _step == 4,
@@ -194,43 +183,17 @@ class _ServiceStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Select a Service', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+    return ListView(padding: const EdgeInsets.all(20), children: [
+      QSectionLabel(icon: Icons.content_cut, title: 'Select a Service'),
       const SizedBox(height: 4),
-      Text('Choose what you\'d like to book', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+      Text('Choose what you\'d like to book', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
       const SizedBox(height: 20),
-      ...services.map((s) => Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: selected?.id == s.id ? QCutColors.purple : Colors.transparent, width: 2),
-        ),
-        child: InkWell(
-          onTap: () => onSelect(s),
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              Container(
-                width: 48, height: 48,
-                decoration: BoxDecoration(color: QCutColors.emeraldBg, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.content_cut, color: QCutColors.emerald, size: 22),
-              ),
-              const SizedBox(width: 14),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: QCutColors.navy)),
-                const SizedBox(height: 2),
-                Text('${s.durationMin} min • ₹${s.price}', style: TextStyle(fontSize: 13, color: QCutColors.charcoal.withValues(alpha: 0.5))),
-              ])),
-              if (selected?.id == s.id)
-                Container(
-                  width: 28, height: 28,
-                  decoration: const BoxDecoration(color: QCutColors.purple, shape: BoxShape.circle),
-                  child: const Icon(Icons.check, color: Colors.white, size: 16),
-                ),
-            ]),
-          ),
-        ),
+      ...services.map((s) => QSelectionTile(
+        selected: selected?.id == s.id,
+        onTap: () => onSelect(s),
+        leading: QIconChip(icon: Icons.content_cut, color: QCutColors.success, size: 44),
+        title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: QCutColors.onSurface)),
+        subtitle: Text('${s.durationMin} min • ₹${s.price}', style: const TextStyle(fontSize: 13, color: QCutColors.onSurfaceVariant)),
       )),
     ]);
   }
@@ -264,7 +227,6 @@ class _DateTimeStepState extends State<_DateTimeStep> {
   void initState() {
     super.initState();
     _scrollCtrl = ScrollController();
-    // Scroll to today
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final todayIdx = widget.dates.indexWhere((d) =>
         d.day == DateTime.now().day && d.month == DateTime.now().month && d.year == DateTime.now().year);
@@ -279,12 +241,11 @@ class _DateTimeStepState extends State<_DateTimeStep> {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Pick a Date', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+    return ListView(padding: const EdgeInsets.all(20), children: [
+      QSectionLabel(icon: Icons.calendar_today, title: 'Pick a Date'),
       const SizedBox(height: 4),
-      Text('Available dates (Mon–Sat)', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+      Text('Available dates (Mon–Sat)', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
       const SizedBox(height: 16),
-      // Horizontal date strip
       SizedBox(
         height: 80,
         child: ListView.builder(
@@ -302,16 +263,17 @@ class _DateTimeStepState extends State<_DateTimeStep> {
                 width: 64, height: 80,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? QCutColors.purple : (isToday ? QCutColors.purpleBg : QCutColors.surfaceVariant),
+                  gradient: isSelected ? QCutGradients.primary : null,
+                  color: isSelected ? null : (isToday ? QCutColors.primaryTint : QCutColors.surfaceContainer),
                   borderRadius: BorderRadius.circular(14),
-                  border: isSelected ? Border.all(color: QCutColors.purple, width: 2) : null,
+                  border: isSelected ? Border.all(color: QCutColors.primary, width: 1.5) : Border.all(color: QCutColors.outlineVariant),
                 ),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Text(isToday ? 'Today' : _dayAbbr(d.weekday),
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : QCutColors.charcoal.withValues(alpha: 0.6))),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : QCutColors.onSurfaceVariant)),
                   const SizedBox(height: 4),
-                  Text('${d.day}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : QCutColors.navy)),
-                  Text(_monthAbbr(d.month), style: TextStyle(fontSize: 10, color: isSelected ? Colors.white70 : QCutColors.charcoal.withValues(alpha: 0.4))),
+                  Text('${d.day}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: isSelected ? Colors.white : QCutColors.onSurface)),
+                  Text(_monthAbbr(d.month), style: TextStyle(fontSize: 10, color: isSelected ? Colors.white70 : QCutColors.onSurfaceVariant.withValues(alpha: 0.6))),
                 ]),
               ),
             );
@@ -319,11 +281,10 @@ class _DateTimeStepState extends State<_DateTimeStep> {
         ),
       ),
       const SizedBox(height: 28),
-      // Time slots
       if (widget.selectedDate != null) ...[
-        const Text('Pick a Time', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+        QSectionLabel(icon: Icons.access_time, title: 'Pick a Time'),
         const SizedBox(height: 4),
-        Text('30-minute slots from 9:00 AM to 9:00 PM', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+        Text('30-minute slots from 9:00 AM to 9:00 PM', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
         const SizedBox(height: 16),
         Wrap(
           spacing: 10,
@@ -335,17 +296,14 @@ class _DateTimeStepState extends State<_DateTimeStep> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? QCutColors.purple : QCutColors.surfaceVariant,
+                  gradient: isSelected ? QCutGradients.primary : null,
+                  color: isSelected ? null : QCutColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
-                  border: isSelected ? Border.all(color: QCutColors.purple, width: 2) : null,
+                  border: Border.all(color: isSelected ? QCutColors.primary : QCutColors.outlineVariant),
                 ),
                 child: Text(
                   _formatTime(slot),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: isSelected ? Colors.white : QCutColors.charcoal,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: isSelected ? Colors.white : QCutColors.onSurface),
                 ),
               ),
             );
@@ -379,39 +337,20 @@ class _BarberStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Choose Your Barber', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+    return ListView(padding: const EdgeInsets.all(20), children: [
+      QSectionLabel(icon: Icons.person, title: 'Choose Your Barber'),
       const SizedBox(height: 4),
-      Text('Select who you\'d like', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+      Text('Select who you\'d like', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
       const SizedBox(height: 20),
-      ...barbers.where((b) => b.isActive).map((b) => Card(
-        margin: const EdgeInsets.only(bottom: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: BorderSide(color: selected?.id == b.id ? QCutColors.purple : Colors.transparent, width: 2),
+      ...barbers.where((b) => b.isActive).map((b) => QSelectionTile(
+        selected: selected?.id == b.id,
+        onTap: () => onSelect(b),
+        leading: CircleAvatar(
+          radius: 24,
+          backgroundColor: QCutColors.primary,
+          child: Text(b.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
         ),
-        child: InkWell(
-          onTap: () => onSelect(b),
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              CircleAvatar(
-                radius: 28,
-                backgroundColor: QCutColors.navy,
-                child: Text(b.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
-              ),
-              const SizedBox(width: 14),
-              Expanded(child: Text(b.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: QCutColors.navy))),
-              if (selected?.id == b.id)
-                Container(
-                  width: 28, height: 28,
-                  decoration: const BoxDecoration(color: QCutColors.purple, shape: BoxShape.circle),
-                  child: const Icon(Icons.check, color: Colors.white, size: 16),
-                ),
-            ]),
-          ),
-        ),
+        title: Text(b.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: QCutColors.onSurface)),
       )),
     ]);
   }
@@ -431,29 +370,21 @@ class _DetailsStep extends StatelessWidget {
   Widget build(BuildContext context) {
     return Form(
       key: formKey,
-      child: ListView(padding: const EdgeInsets.all(16), children: [
-        const Text('Your Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+      child: ListView(padding: const EdgeInsets.all(20), children: [
+        QSectionLabel(icon: Icons.badge, title: 'Your Details'),
         const SizedBox(height: 4),
-        Text('We\'ll save these for your booking', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+        Text('We\'ll save these for your booking', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
         const SizedBox(height: 24),
         TextFormField(
           controller: nameCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Full Name *',
-            prefixIcon: Icon(Icons.person),
-            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-          ),
+          decoration: const InputDecoration(labelText: 'Full Name *', prefixIcon: Icon(Icons.person)),
           textCapitalization: TextCapitalization.words,
           validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: phoneCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
-            prefixIcon: Icon(Icons.phone),
-            border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-          ),
+          decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
           keyboardType: TextInputType.phone,
         ),
       ]),
@@ -476,33 +407,30 @@ class _SummaryStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(padding: const EdgeInsets.all(16), children: [
-      const Text('Booking Summary', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
+    return ListView(padding: const EdgeInsets.all(20), children: [
+      QSectionLabel(icon: Icons.receipt_long, title: 'Booking Summary'),
       const SizedBox(height: 4),
-      Text('Review and confirm your appointment', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+      Text('Review and confirm your appointment', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
       const SizedBox(height: 20),
-      Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(children: [
-            _SummaryRow(icon: Icons.content_cut, label: 'Service', value: service),
+      QGlassCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(children: [
+          _SummaryRow(icon: Icons.content_cut, label: 'Service', value: service),
+          const Divider(height: 24),
+          _SummaryRow(icon: Icons.calendar_today, label: 'Date', value: date),
+          const Divider(height: 24),
+          _SummaryRow(icon: Icons.access_time, label: 'Time', value: time),
+          const Divider(height: 24),
+          _SummaryRow(icon: Icons.timer, label: 'Duration', value: '$duration min'),
+          const Divider(height: 24),
+          _SummaryRow(icon: Icons.person, label: 'Barber', value: barber),
+          const Divider(height: 24),
+          _SummaryRow(icon: Icons.badge, label: 'Your Name', value: name),
+          if (phone.isNotEmpty) ...[
             const Divider(height: 24),
-            _SummaryRow(icon: Icons.calendar_today, label: 'Date', value: date),
-            const Divider(height: 24),
-            _SummaryRow(icon: Icons.access_time, label: 'Time', value: time),
-            const Divider(height: 24),
-            _SummaryRow(icon: Icons.timer, label: 'Duration', value: '$duration min'),
-            const Divider(height: 24),
-            _SummaryRow(icon: Icons.person, label: 'Barber', value: barber),
-            const Divider(height: 24),
-            _SummaryRow(icon: Icons.badge, label: 'Your Name', value: name),
-            if (phone.isNotEmpty) ...[
-              const Divider(height: 24),
-              _SummaryRow(icon: Icons.phone, label: 'Phone', value: phone),
-            ],
-          ]),
-        ),
+            _SummaryRow(icon: Icons.phone, label: 'Phone', value: phone),
+          ],
+        ]),
       ),
     ]);
   }
@@ -516,11 +444,11 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(children: [
-      Icon(icon, size: 18, color: QCutColors.purple),
+      Icon(icon, size: 18, color: QCutColors.primary),
       const SizedBox(width: 12),
-      Text(label, style: TextStyle(fontSize: 13, color: QCutColors.charcoal.withValues(alpha: 0.5))),
+      Text(label, style: const TextStyle(fontSize: 13, color: QCutColors.onSurfaceVariant)),
       const Spacer(),
-      Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: QCutColors.navy, fontSize: 14)),
+      Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: QCutColors.onSurface, fontSize: 14)),
     ]);
   }
 }
@@ -540,46 +468,39 @@ class _ConfirmationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Booking Confirmed'),
-        backgroundColor: QCutColors.emerald,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Card(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            elevation: 8,
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.check_circle, size: 72, color: QCutColors.emerald),
-                const SizedBox(height: 16),
-                const Text('Appointment Booked!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: QCutColors.navy)),
-                const SizedBox(height: 8),
-                Text(name, style: const TextStyle(fontSize: 16)),
-                const SizedBox(height: 24),
-                _ConfirmationRow(icon: Icons.content_cut, text: service),
-                _ConfirmationRow(icon: Icons.calendar_today, text: date),
-                _ConfirmationRow(icon: Icons.access_time, text: time),
-                _ConfirmationRow(icon: Icons.person, text: 'Barber: $barber'),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: onDone,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: QCutColors.navy,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Done', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      backgroundColor: QCutColors.surface,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32),
+            child: Container(
+              decoration: BoxDecoration(
+                color: QCutColors.surfaceContainer,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: QCutColors.success.withValues(alpha: 0.4)),
+                boxShadow: [BoxShadow(color: QCutColors.success.withValues(alpha: 0.18), blurRadius: 24)],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 80, height: 80,
+                    decoration: BoxDecoration(gradient: QCutGradients.success, shape: BoxShape.circle, boxShadow: QCutShadows.glow(QCutColors.success)),
+                    child: const Icon(Icons.check, color: Colors.white, size: 44),
                   ),
-                ),
-              ]),
+                  const SizedBox(height: 20),
+                  const Text('Appointment Booked!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
+                  const SizedBox(height: 8),
+                  Text(name, style: const TextStyle(fontSize: 16, color: QCutColors.onSurfaceVariant)),
+                  const SizedBox(height: 24),
+                  _ConfirmationRow(icon: Icons.content_cut, text: service),
+                  _ConfirmationRow(icon: Icons.calendar_today, text: date),
+                  _ConfirmationRow(icon: Icons.access_time, text: time),
+                  _ConfirmationRow(icon: Icons.person, text: 'Barber: $barber'),
+                  const SizedBox(height: 32),
+                  QPrimaryButton(onPressed: onDone, icon: Icons.check, child: const Text('Done')),
+                ]),
+              ),
             ),
           ),
         ),
@@ -598,9 +519,9 @@ class _ConfirmationRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(icon, size: 16, color: QCutColors.charcoal.withValues(alpha: 0.5)),
+        Icon(icon, size: 16, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
-        Text(text, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.7), fontSize: 14)),
+        Text(text, style: TextStyle(color: QCutColors.onSurfaceVariant, fontSize: 14)),
       ]),
     );
   }
@@ -628,25 +549,26 @@ class _StepIndicator extends StatelessWidget {
             Container(
               width: 26, height: 26,
               decoration: BoxDecoration(
-                color: active ? QCutColors.purple : (done ? QCutColors.emerald : QCutColors.surfaceVariant),
+                gradient: active ? QCutGradients.primary : null,
+                color: active ? null : (done ? QCutColors.success : QCutColors.surfaceContainerHigh),
                 shape: BoxShape.circle,
-                border: !active && !done ? Border.all(color: QCutColors.charcoal.withValues(alpha: 0.2)) : null,
+                border: active ? Border.all(color: QCutColors.primary.withValues(alpha: 0.5)) : null,
               ),
               child: Center(
                 child: done
-                  ? const Icon(Icons.check, color: Colors.white, size: 14)
-                  : Text('${i + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: active ? Colors.white : QCutColors.charcoal.withValues(alpha: 0.4))),
+                    ? const Icon(Icons.check, color: Colors.white, size: 14)
+                    : Text('${i + 1}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: active ? Colors.white : QCutColors.onSurfaceVariant)),
               ),
             ),
             const SizedBox(width: 6),
             Text(steps[i], style: TextStyle(
               fontSize: 11,
-              fontWeight: active ? FontWeight.w600 : FontWeight.normal,
-              color: active ? QCutColors.purple : QCutColors.charcoal.withValues(alpha: 0.4),
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? QCutColors.primary : QCutColors.onSurfaceVariant,
             )),
             if (i < steps.length - 1) ...[
               const SizedBox(width: 6),
-              Icon(Icons.chevron_right, size: 14, color: QCutColors.charcoal.withValues(alpha: 0.2)),
+              Icon(Icons.chevron_right, size: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.3)),
               const SizedBox(width: 6),
             ],
           ]);
@@ -672,38 +594,24 @@ class _BottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))],
-      ),
+      decoration: const BoxDecoration(color: QCutColors.surface, border: Border(top: BorderSide(color: QCutColors.outlineVariant))),
       child: Row(children: [
         if (onBack != null)
           SizedBox(
             width: 50, height: 50,
             child: OutlinedButton(
               onPressed: onBack,
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                side: BorderSide(color: QCutColors.charcoal.withValues(alpha: 0.2)),
-              ),
-              child: const Icon(Icons.arrow_back, size: 20, color: QCutColors.charcoal),
+              style: OutlinedButton.styleFrom(padding: EdgeInsets.zero, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: const Icon(Icons.arrow_back, size: 20),
             ),
           ),
         if (onBack != null) const SizedBox(width: 12),
         Expanded(
-          child: SizedBox(
-            height: 50,
-            child: ElevatedButton(
-              onPressed: canProceed ? onNext : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isLast ? QCutColors.emerald : QCutColors.purple,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: QCutColors.surfaceVariant,
-                disabledForegroundColor: QCutColors.charcoal.withValues(alpha: 0.3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(nextLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
+          child: QPrimaryButton(
+            onPressed: canProceed ? onNext : null,
+            icon: isLast ? Icons.event_available : Icons.arrow_forward,
+            gradient: isLast ? QCutGradients.success : QCutGradients.primary,
+            child: Text(nextLabel),
           ),
         ),
       ]),

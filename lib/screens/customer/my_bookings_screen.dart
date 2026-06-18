@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/booking.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Customer My Bookings — ported from QCUT Kotlin MyBookingsScreen.kt
+/// Customer My Bookings — upcoming & past bookings.
 class MyBookingsScreen extends StatelessWidget {
   final List<Booking> bookings;
   final Function(Booking) onCancel;
@@ -23,71 +24,33 @@ class MyBookingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Bookings'),
-        backgroundColor: QCutColors.navy,
-        foregroundColor: Colors.white,
         actions: [
           if (onNewBooking != null)
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: onNewBooking,
-              tooltip: 'New Booking',
-            ),
+            IconButton(icon: const Icon(Icons.add_circle_outline), onPressed: onNewBooking, tooltip: 'New Booking'),
         ],
       ),
       body: bookings.isEmpty
-          ? Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.calendar_today, size: 64, color: QCutColors.charcoal.withValues(alpha: 0.2)),
-                const SizedBox(height: 16),
-                Text('No bookings yet', style: TextStyle(fontSize: 16, color: QCutColors.charcoal.withValues(alpha: 0.5))),
-                if (onNewBooking != null) ...[
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: onNewBooking,
-                    icon: const Icon(Icons.add),
-                    label: const Text('New Booking'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: QCutColors.purple,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ],
-              ]),
+          ? QEmptyState(
+              icon: Icons.calendar_today,
+              title: 'No bookings yet',
+              action: onNewBooking != null
+                  ? QPrimaryButton(onPressed: onNewBooking, icon: Icons.add, child: const Text('New Booking'))
+                  : null,
             )
-          : ListView(padding: const EdgeInsets.all(16), children: [
+          : ListView(padding: const EdgeInsets.all(20), children: [
               if (upcoming.isNotEmpty) ...[
-                _SectionHeader(title: 'Upcoming', count: upcoming.length),
-                const SizedBox(height: 8),
+                QSectionLabel(icon: Icons.upcoming, title: 'Upcoming', trailing: '${upcoming.length}'),
+                const SizedBox(height: 12),
                 ...upcoming.map((b) => _BookingCard(booking: b, onCancel: () => onCancel(b))),
                 const SizedBox(height: 24),
               ],
               if (past.isNotEmpty) ...[
-                _SectionHeader(title: 'Past', count: past.length),
-                const SizedBox(height: 8),
+                QSectionLabel(icon: Icons.history, title: 'Past', trailing: '${past.length}'),
+                const SizedBox(height: 12),
                 ...past.map((b) => _BookingCard(booking: b, onCancel: null)),
               ],
             ]),
     );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  final String title;
-  final int count;
-  const _SectionHeader({required this.title, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600, color: QCutColors.navy)),
-      const SizedBox(width: 8),
-      Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        decoration: BoxDecoration(color: QCutColors.surfaceVariant, borderRadius: BorderRadius.circular(8)),
-        child: Text('$count', style: TextStyle(fontSize: 12, color: QCutColors.charcoal.withValues(alpha: 0.6))),
-      ),
-    ]);
   }
 }
 
@@ -99,41 +62,27 @@ class _BookingCard extends StatelessWidget {
 
   Color get _statusColor {
     switch (booking.status) {
-      case 'confirmed':
-        return QCutColors.emerald;
-      case 'completed':
-        return QCutColors.purple;
-      case 'cancelled':
-        return QCutColors.red;
-      case 'no-show':
-        return QCutColors.amber;
-      default:
-        return QCutColors.charcoal;
+      case 'confirmed': return QCutColors.success;
+      case 'completed': return QCutColors.primary;
+      case 'cancelled': return QCutColors.error;
+      case 'no-show': return QCutColors.warning;
+      default: return QCutColors.onSurfaceVariant;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return QGlassCard(
+      margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Expanded(
-              child: Text(booking.serviceType.isNotEmpty ? booking.serviceType : 'Haircut',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: QCutColors.navy)),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _statusColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(booking.status.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _statusColor, letterSpacing: 0.5)),
-            ),
+            Expanded(child: Text(booking.serviceType.isNotEmpty ? booking.serviceType : 'Haircut',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: QCutColors.onSurface))),
+            QCountChip(label: booking.status.toUpperCase(), color: _statusColor),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           _InfoRow(icon: Icons.person, text: booking.barberName),
           _InfoRow(icon: Icons.calendar_today, text: '${booking.date} at ${booking.timeSlot}'),
           if (booking.bookingCode.isNotEmpty) _InfoRow(icon: Icons.confirmation_number, text: 'Code: ${booking.bookingCode}'),
@@ -144,9 +93,9 @@ class _BookingCard extends StatelessWidget {
               child: OutlinedButton(
                 onPressed: onCancel,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: QCutColors.red,
-                  side: const BorderSide(color: QCutColors.red),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  foregroundColor: QCutColors.error,
+                  side: BorderSide(color: QCutColors.error.withValues(alpha: 0.4)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('Cancel Booking'),
               ),
@@ -168,9 +117,9 @@ class _InfoRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(children: [
-        Icon(icon, size: 14, color: QCutColors.charcoal.withValues(alpha: 0.4)),
+        Icon(icon, size: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.5)),
         const SizedBox(width: 8),
-        Text(text, style: TextStyle(fontSize: 13, color: QCutColors.charcoal.withValues(alpha: 0.7))),
+        Text(text, style: TextStyle(fontSize: 13, color: QCutColors.onSurfaceVariant)),
       ]),
     );
   }

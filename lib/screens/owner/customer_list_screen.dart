@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../models/token_entry.dart';
 import '../../models/booking.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Customer History — searchable customer list with visit history
+/// Customer History — searchable customer list with visit history.
 class CustomerListScreen extends StatefulWidget {
   final List<TokenEntry> completedTokens;
   final List<Booking> completedBookings;
@@ -22,7 +23,6 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   String _query = '';
   final _searchCtrl = TextEditingController();
 
-  // Build customer summary from completed tokens + bookings
   List<_CustomerSummary> get _customers {
     final map = <String, _CustomerSummary>{};
 
@@ -47,7 +47,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     }
 
     final list = map.values.toList();
-    list.sort((a, b) => b.visits.compareTo(a.visits)); // Most visits first
+    list.sort((a, b) => b.visits.compareTo(a.visits));
     return list;
   }
 
@@ -67,48 +67,37 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     final customers = _filtered;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Customers'),
-        backgroundColor: QCutColors.navy,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Customers')),
       body: Column(children: [
-        // Search bar
         Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _query = v),
+            style: const TextStyle(color: QCutColors.onSurface),
             decoration: InputDecoration(
               hintText: 'Search customers...',
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _query.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), onPressed: () { _searchCtrl.clear(); setState(() => _query = ''); }) : null,
-              filled: true,
-              fillColor: QCutColors.surfaceVariant,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             ),
           ),
         ),
-
-        // Stats summary
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(children: [
-            _MiniStat(label: 'Total', value: '${_customers.length}'),
-            const SizedBox(width: 16),
-            _MiniStat(label: 'Visits', value: '${_customers.fold<int>(0, (s, c) => s + c.visits)}'),
-            const SizedBox(width: 16),
-            _MiniStat(label: 'No-shows', value: '${_customers.fold<int>(0, (s, c) => s + c.statuses.where((st) => st == 'no-show').length)}'),
+            QStatCard(label: 'Total', value: '${_customers.length}', color: QCutColors.primary),
+            const SizedBox(width: 10),
+            QStatCard(label: 'Visits', value: '${_customers.fold<int>(0, (s, c) => s + c.visits)}', color: QCutColors.success),
+            const SizedBox(width: 10),
+            QStatCard(label: 'No-shows', value: '${_customers.fold<int>(0, (s, c) => s + c.statuses.where((st) => st == 'no-show').length)}', color: QCutColors.warning),
           ]),
         ),
         const SizedBox(height: 8),
-
-        // Customer list
         Expanded(
           child: customers.isEmpty
-              ? Center(child: Text(_query.isNotEmpty ? 'No customers match "$_query"' : 'No customer history yet', style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))))
+              ? QEmptyState(icon: Icons.people_outline, title: _query.isNotEmpty ? 'No matches' : 'No customer history yet', subtitle: _query.isNotEmpty ? 'No customers match "$_query"' : 'Completed visits will appear here.')
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: customers.length,
                   itemBuilder: (_, i) => _CustomerCard(customer: customers[i], onTap: () => _showDetails(customers[i])),
                 ),
@@ -120,16 +109,17 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   void _showDetails(_CustomerSummary c) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: QCutColors.surfaceContainer,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (_) => Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            CircleAvatar(backgroundColor: QCutColors.navy, radius: 24, child: Text(c.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20))),
+            CircleAvatar(backgroundColor: QCutColors.primary, radius: 24, child: Text(c.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 20))),
             const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(c.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.navy)),
-              if (c.phone.isNotEmpty) Text(c.phone, style: TextStyle(color: QCutColors.charcoal.withValues(alpha: 0.5))),
+              Text(c.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
+              if (c.phone.isNotEmpty) Text(c.phone, style: const TextStyle(color: QCutColors.onSurfaceVariant)),
             ])),
           ]),
           const SizedBox(height: 24),
@@ -140,9 +130,9 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
           ]),
           const SizedBox(height: 16),
           if (c.barbers.isNotEmpty) ...[
-            Text('Preferred Barbers', style: TextStyle(fontWeight: FontWeight.w600, color: QCutColors.navy)),
+            const Text('Preferred Barbers', style: TextStyle(fontWeight: FontWeight.w700, color: QCutColors.onSurface)),
             const SizedBox(height: 8),
-            Wrap(spacing: 6, children: c.barbers.map((b) => Chip(label: Text(b), backgroundColor: QCutColors.surfaceVariant, labelStyle: const TextStyle(fontSize: 12))).toList()),
+            Wrap(spacing: 6, children: c.barbers.map((b) => Chip(label: Text(b), labelStyle: const TextStyle(fontSize: 12, color: QCutColors.onSurface))).toList()),
           ],
           const SizedBox(height: 24),
         ]),
@@ -161,25 +151,6 @@ class _CustomerSummary {
   _CustomerSummary({required this.name, required this.phone});
 }
 
-class _MiniStat extends StatelessWidget {
-  final String label, value;
-  const _MiniStat({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(color: QCutColors.surfaceVariant, borderRadius: BorderRadius.circular(10)),
-        child: Column(children: [
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: QCutColors.navy)),
-          Text(label, style: TextStyle(fontSize: 11, color: QCutColors.charcoal.withValues(alpha: 0.5))),
-        ]),
-      ),
-    );
-  }
-}
-
 class _CustomerCard extends StatelessWidget {
   final _CustomerSummary customer;
   final VoidCallback onTap;
@@ -190,23 +161,19 @@ class _CustomerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final noShows = customer.statuses.where((s) => s == 'no-show').length;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
+    return QGlassCard(
+      margin: const EdgeInsets.only(bottom: 8),
+      onTap: onTap,
       child: ListTile(
-        leading: CircleAvatar(backgroundColor: QCutColors.navy, child: Text(customer.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
-        title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w600, color: QCutColors.navy)),
-        subtitle: Text('${customer.visits} visits • ${customer.barbers.length} barbers'),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        leading: CircleAvatar(backgroundColor: QCutColors.primary, child: Text(customer.name[0].toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+        title: Text(customer.name, style: const TextStyle(fontWeight: FontWeight.w700, color: QCutColors.onSurface)),
+        subtitle: Text('${customer.visits} visits • ${customer.barbers.length} barbers', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (noShows > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: QCutColors.redBg, borderRadius: BorderRadius.circular(8)),
-              child: Text('$noShows NS', style: const TextStyle(fontSize: 10, color: QCutColors.red)),
-            ),
-          const SizedBox(width: 4),
-          const Icon(Icons.chevron_right),
+          if (noShows > 0) QCountChip(label: '$noShows NS', color: QCutColors.error),
+          if (noShows > 0) const SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.5)),
         ]),
-        onTap: onTap,
       ),
     );
   }
@@ -220,9 +187,9 @@ class _DetailChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
-      Icon(icon, color: QCutColors.navy),
+      Icon(icon, color: QCutColors.primary),
       const SizedBox(height: 4),
-      Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: QCutColors.navy)),
+      Text(label, style: const TextStyle(fontWeight: FontWeight.w700, color: QCutColors.onSurface)),
     ]);
   }
 }

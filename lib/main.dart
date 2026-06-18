@@ -530,8 +530,7 @@ class _QCutHomeState extends State<QCutHome> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(children: [Icon(Icons.lock, color: QCutColors.purple), SizedBox(width: 8), Text('Plan Upgrade Required', style: TextStyle(color: QCutColors.navy))]),
+        title: const Row(children: [Icon(Icons.lock, color: QCutColors.primary), SizedBox(width: 8), Text('Plan Upgrade Required')]),
         content: Text('$feature is available on the Pro (₹499/mo) or Clinic (₹349/mo) plan. Contact your administrator to upgrade.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
@@ -596,17 +595,16 @@ class _UpgradePlaceholder extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Icon(Icons.lock, size: 48, color: QCutColors.charcoal.withValues(alpha: 0.2)),
+          Icon(Icons.lock_outline, size: 56, color: QCutColors.primary.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
-          Text('$feature Locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: QCutColors.charcoal.withValues(alpha: 0.4))),
+          Text('$feature Locked', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: QCutColors.onSurface.withValues(alpha: 0.7))),
           const SizedBox(height: 8),
-          Text('Upgrade to Pro or Clinic plan', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: QCutColors.charcoal.withValues(alpha: 0.3))),
+          Text('Upgrade to Pro or Clinic plan', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant)),
           const SizedBox(height: 20),
           ElevatedButton.icon(
             onPressed: onUpgrade,
             icon: const Icon(Icons.upgrade),
             label: const Text('Upgrade Now'),
-            style: ElevatedButton.styleFrom(backgroundColor: QCutColors.purple, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           ),
         ]),
       ),

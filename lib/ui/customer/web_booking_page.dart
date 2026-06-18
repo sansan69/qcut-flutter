@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qcut_flutter/domain/models/tenant.dart';
 import 'package:qcut_flutter/theme/app_theme.dart';
 import 'package:qcut_flutter/ui/core/q_logo_header.dart';
+import 'package:qcut_flutter/ui/core/qcut_components.dart';
 
 class WebBookingPage extends StatefulWidget {
   final String shopSlug;
@@ -32,10 +33,7 @@ class _WebBookingPageState extends State<WebBookingPage> {
           .limit(1)
           .get();
       if (snap.docs.isEmpty) {
-        setState(() {
-          _loading = false;
-          _error = 'Shop not found';
-        });
+        setState(() { _loading = false; _error = 'Shop not found'; });
         return;
       }
       setState(() {
@@ -43,38 +41,40 @@ class _WebBookingPageState extends State<WebBookingPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _loading = false;
-      });
+      setState(() { _error = e.toString(); _loading = false; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: QCutColors.surface,
-        body: Center(child: CircularProgressIndicator(color: QCutColors.primary)),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: QCutColors.surface,
-        body: Center(child: Text('Error loading shop', style: TextStyle(color: QCutColors.onSurface))),
+        body: QEmptyState(
+          icon: Icons.error_outline,
+          title: 'Error loading shop',
+          subtitle: _error,
+          tint: QCutColors.error,
+        ),
       );
     }
     return Scaffold(
       backgroundColor: QCutColors.surface,
       appBar: AppBar(
-        title: QLogoHeader(height: 28, showText: false),
+        title: const QLogoHeader(height: 28, showText: false),
         actions: [TextButton(onPressed: () {}, child: const Text('Help'))],
       ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_tenant?.name ?? 'Shop', style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurface)),
+            Text(_tenant?.name ?? 'Shop', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text('Booking flow for ${widget.shopSlug}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
           ],

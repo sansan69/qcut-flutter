@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../services/haptic_service.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// Admin Login — Sign In or Register Shop
+/// Admin Login — Sign In or Register Shop.
 class LoginScreen extends StatefulWidget {
   final AuthService auth;
   final VoidCallback? onRegisterShop; // → onboarding flow
@@ -45,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: QCutColors.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -52,31 +54,27 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Form(
               key: _formKey,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                // Logo
-                Column(
-                  children: [
-                    Image.asset(
-                      'assets/logo/logo_transparent.png',
-                      height: 100,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 100),
-                    ),
-                    const SizedBox(height: 16),
-                Text(
-                  'Queue. Cut. Go.',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurfaceVariant),
+                // Logo + slogan
+                Image.asset(
+                  'assets/logo/logo_transparent.png',
+                  height: 96,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 96, height: 96,
+                    decoration: BoxDecoration(gradient: QCutGradients.primary, borderRadius: BorderRadius.circular(28), boxShadow: QCutShadows.glow()),
+                    child: const Center(child: Text('Q', style: TextStyle(fontSize: 52, fontWeight: FontWeight.w800, color: Colors.white))),
+                  ),
                 ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
-                const Text('Admin Panel', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant)),
-                const SizedBox(height: 36),
+                const SizedBox(height: 16),
+                const Text('Queue. Cut. Go.', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QCutColors.onSurface, letterSpacing: -0.2)),
+                const SizedBox(height: 6),
+                const Text('Admin Panel', style: TextStyle(fontSize: 13, color: QCutColors.primary, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                const SizedBox(height: 32),
 
-                // Error
                 if (_error != null)
                   Container(
                     width: double.infinity, margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(color: QCutColors.error.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                    decoration: BoxDecoration(color: QCutColors.errorTint, borderRadius: BorderRadius.circular(12), border: Border.all(color: QCutColors.error.withValues(alpha: 0.4))),
                     child: Row(children: [
                       const Icon(Icons.error_outline, color: QCutColors.error, size: 18),
                       const SizedBox(width: 8),
@@ -84,62 +82,47 @@ class _LoginScreenState extends State<LoginScreen> {
                     ]),
                   ),
 
-                // Email
                 TextFormField(
                   controller: _emailCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Email', hintText: 'owner@shop.com',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Email', hintText: 'owner@shop.com', prefixIcon: Icon(Icons.email)),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
                 const SizedBox(height: 16),
-
-                // Password
                 TextFormField(
                   controller: _passCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Password', hintText: 'Min 4 characters',
-                    prefixIcon: Icon(Icons.lock),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                  ),
+                  decoration: const InputDecoration(labelText: 'Password', hintText: 'Min 4 characters', prefixIcon: Icon(Icons.lock)),
                   obscureText: true,
                   validator: (v) => (v == null || v.length < 4) ? 'Min 4 characters' : null,
                   onFieldSubmitted: (_) => _signIn(),
                 ),
                 const SizedBox(height: 24),
-
-                // Sign In button
-                SizedBox(
-                  width: double.infinity, height: 50,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _signIn,
-                    style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: _loading
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                        : const Text('Sign In', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  ),
+                QPrimaryButton(
+                  onPressed: _loading ? null : _signIn,
+                  icon: _loading ? null : Icons.login,
+                  child: _loading
+                      ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                      : const Text('Sign In'),
                 ),
 
                 const SizedBox(height: 24),
-                const Divider(),
+                Row(children: [
+                  const Expanded(child: Divider()),
+                  Padding(padding: const EdgeInsets.symmetric(horizontal: 12), child: Text('OR', style: TextStyle(color: QCutColors.onSurfaceVariant.withValues(alpha: 0.6), fontWeight: FontWeight.w600))),
+                  const Expanded(child: Divider()),
+                ]),
                 const SizedBox(height: 16),
 
-                // Register new shop
-                Text('New to Q-CUT?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
+                Text('New to QCUT?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity, height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      widget.onRegisterShop?.call();
-                    },
-                    icon: const Icon(Icons.store, size: 18),
-                    label: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    widget.onRegisterShop?.call();
+                  },
+                  icon: const Icon(Icons.store, size: 18),
+                  label: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                 ),
                 const SizedBox(height: 16),
               ]),

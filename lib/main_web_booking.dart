@@ -43,29 +43,30 @@ class WebBookingApp extends StatelessWidget {
         if (initError != null) {
           return MaterialPageRoute(
             builder: (_) => Scaffold(
+              backgroundColor: QCutColors.surface,
               body: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(Icons.error_outline, size: 48, color: QCutColors.error),
                       const SizedBox(height: 16),
                       const Text(
                         'Booking page configuration is incomplete',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      const Text(
                         'Please add the web Firebase configuration in firebase_options.dart.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: QCutColors.onSurfaceVariant, height: 1.5),
                       ),
                       const SizedBox(height: 16),
                       SelectableText(
                         initError!,
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(fontSize: 12, color: QCutColors.onSurfaceVariant),
                       ),
                     ],
                   ),

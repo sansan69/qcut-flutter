@@ -3,8 +3,9 @@ import '../../models/onboarding_models.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../../theme/app_theme.dart';
+import '../../ui/core/qcut_components.dart';
 
-/// 4-step onboarding — creates Firebase Auth account + submits to queue
+/// 4-step onboarding — creates Firebase Auth account + submits to queue.
 class OnboardingScreen extends StatefulWidget {
   final VoidCallback onBackToHome;
   final AuthService? auth;
@@ -62,7 +63,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     setState(() { _loading = true; _submitted = true; });
 
     try {
-      // 1. Create Firebase Auth account for the owner
       if (widget.auth != null && _form.ownerEmail.isNotEmpty && _form.password.isNotEmpty) {
         try {
           await widget.auth!.signUpWithEmail(
@@ -72,15 +72,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           );
         } catch (e) {
           debugPrint('Auth account may already exist: $e');
-          // Try signing in instead
           try { await widget.auth!.signInWithEmail(_form.ownerEmail.trim(), _form.password); }
           catch (_) {}
         }
       }
-
-      // 2. Submit to Firestore onboarding queue
       await FirestoreService().submitOnboarding(_form.toMap());
-
       setState(() => _loading = false);
     } catch (e) {
       debugPrint('Onboarding submit error: $e');
@@ -96,14 +92,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Join Q-CUT'),
+        title: const Text('Join QCUT'),
         leading: IconButton(
           icon: Icon(_step > 0 ? Icons.arrow_back : Icons.close),
           onPressed: _step > 0 ? _prev : widget.onBackToHome,
         ),
       ),
       body: Column(children: [
-        // Step indicator
         Padding(
           padding: const EdgeInsets.all(16),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: List.generate(4, (i) {
@@ -113,66 +108,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               Container(
                 width: 32, height: 32,
                 decoration: BoxDecoration(
-                  color: active ? QCutColors.primary : (done ? QCutColors.success : QCutColors.surfaceContainer),
+                  gradient: active ? QCutGradients.primary : null,
+                  color: active ? null : (done ? QCutColors.success : QCutColors.surfaceContainerHigh),
                   shape: BoxShape.circle,
                 ),
                 child: Center(
                   child: done
-                      ? const Icon(Icons.check, color: QCutColors.onSurface, size: 16)
-                      : Text('${i + 1}', style: TextStyle(color: active ? QCutColors.onSurface : QCutColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.bold)),
+                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                      : Text('${i + 1}', style: TextStyle(color: active ? Colors.white : QCutColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w800)),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(_steps[i], style: TextStyle(fontSize: 10, color: active ? QCutColors.primary : QCutColors.onSurfaceVariant)),
+              Text(_steps[i], style: TextStyle(fontSize: 10, color: active ? QCutColors.primary : QCutColors.onSurfaceVariant, fontWeight: active ? FontWeight.w700 : FontWeight.w500)),
             ]);
           })),
         ),
         const Divider(),
 
-        // Form content
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                Column(
-                  children: [
-                    Image.asset(
-                      'assets/logo/logo_transparent.png',
-                      height: 120,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.cut, size: 120),
-                    ),
-                    const SizedBox(height: 16),
-                Text(
-                  'Queue. Cut. Go.',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: QCutColors.onSurfaceVariant),
+                Image.asset(
+                  'assets/logo/logo_transparent.png',
+                  height: 96,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 96, height: 96,
+                    decoration: BoxDecoration(gradient: QCutGradients.primary, borderRadius: BorderRadius.circular(28), boxShadow: QCutShadows.glow()),
+                    child: const Center(child: Text('Q', style: TextStyle(fontSize: 52, fontWeight: FontWeight.w800, color: Colors.white))),
+                  ),
                 ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                const SizedBox(height: 12),
+                Text('Queue. Cut. Go.', style: Theme.of(context).textTheme.titleLarge?.copyWith(color: QCutColors.onSurfaceVariant, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 24),
                 _buildStep(),
               ],
             ),
           ),
         ),
 
-        // Bottom bar
         Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: QCutColors.surface, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))]),
-          child: SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _loading ? null : (_step == 3 ? _submit : _next),
-              style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: QCutColors.onSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: _loading
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: QCutColors.onSurface))
-                  : Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                      Text(_step == 3 ? 'Submit Application' : 'Next', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      if (_step < 3) ...[const SizedBox(width: 8), const Icon(Icons.arrow_forward, size: 18)],
-                    ]),
-            ),
+          decoration: const BoxDecoration(color: QCutColors.surface, border: Border(top: BorderSide(color: QCutColors.outlineVariant))),
+          child: QPrimaryButton(
+            onPressed: _loading ? null : (_step == 3 ? _submit : _next),
+            icon: _loading ? null : (_step == 3 ? Icons.check : Icons.arrow_forward),
+            child: _loading
+                ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+                : Text(_step == 3 ? 'Submit Application' : 'Next'),
           ),
         ),
       ]),
@@ -198,7 +182,7 @@ class _BusinessStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Business Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
+      const Text('Business Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Business Name *', value: form.businessName, onChanged: (v) => form.businessName = v, error: errors['businessName']),
       _Dropdown(label: 'Business Type *', value: form.businessType, options: OnboardingConstants.businessTypes, onChanged: (v) => form.businessType = v, error: errors['businessType']),
@@ -223,7 +207,7 @@ class _OwnerStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Owner Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
+      const Text('Owner Information', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Owner Name *', value: form.ownerName, onChanged: (v) => form.ownerName = v, error: errors['ownerName']),
       _Field(label: 'Owner Email (Gmail) *', value: form.ownerEmail, onChanged: (v) => form.ownerEmail = v, keyboardType: TextInputType.emailAddress, error: errors['ownerEmail']),
@@ -245,7 +229,7 @@ class _OperationsStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Operational Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
+      const Text('Operational Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
       _Field(label: 'Staff Count *', value: form.staffCount, onChanged: (v) => form.staffCount = v.replaceAll(RegExp(r'[^0-9]'), ''), keyboardType: TextInputType.number),
       Row(children: [
@@ -258,9 +242,9 @@ class _OperationsStep extends StatelessWidget {
       const Text('Booking Mode', style: TextStyle(fontWeight: FontWeight.w600, color: QCutColors.onSurfaceVariant)),
       const SizedBox(height: 8),
       Row(children: [
-        ChoiceChip(label: const Text('Appointment'), selected: form.bookingMode == 'appointment', onSelected: (_) => form.bookingMode = 'appointment', selectedColor: QCutColors.primary),
+        ChoiceChip(label: const Text('Appointment'), selected: form.bookingMode == 'appointment', onSelected: (_) => form.bookingMode = 'appointment'),
         const SizedBox(width: 8),
-        ChoiceChip(label: const Text('Token Queue'), selected: form.bookingMode == 'token', onSelected: (_) => form.bookingMode = 'token', selectedColor: QCutColors.success),
+        ChoiceChip(label: const Text('Token Queue'), selected: form.bookingMode == 'token', onSelected: (_) => form.bookingMode = 'token'),
       ]),
       const SizedBox(height: 24),
     ]);
@@ -275,22 +259,17 @@ class _ReviewStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('Review & Submit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
+      const Text('Review & Submit', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
       const SizedBox(height: 16),
-      Card(
-        color: QCutColors.surfaceContainer,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Business: ${form.businessName}', style: const TextStyle(fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
-            Text('Owner: ${form.ownerName}'),
-            Text('Email: ${form.ownerEmail}'),
-            Text('Phone: ${form.ownerPhone}'),
-            Text('District: ${form.district}, ${form.city}'),
-            Text('Mode: ${form.bookingMode == 'token' ? 'Token Queue' : 'Appointment'}'),
-          ]),
-        ),
+      QGlassCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Business: ${form.businessName}', style: const TextStyle(fontWeight: FontWeight.w700, color: QCutColors.onSurface)),
+          Text('Owner: ${form.ownerName}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+          Text('Email: ${form.ownerEmail}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+          Text('Phone: ${form.ownerPhone}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+          Text('District: ${form.district}, ${form.city}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+          Text('Mode: ${form.bookingMode == 'token' ? 'Token Queue' : 'Appointment'}', style: const TextStyle(color: QCutColors.onSurfaceVariant)),
+        ]),
       ),
       const SizedBox(height: 16),
       _Checkbox(label: 'I accept the Terms & Conditions', value: form.termsAccepted, onChanged: (v) => form.termsAccepted = v!, error: errors['termsAccepted']),
@@ -335,11 +314,7 @@ class _FieldState extends State<_Field> {
         onChanged: widget.onChanged,
         keyboardType: widget.keyboardType,
         obscureText: widget.obscureText,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          errorText: widget.error,
-          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        ),
+        decoration: InputDecoration(labelText: widget.label, errorText: widget.error),
       ),
     );
   }
@@ -363,11 +338,8 @@ class _DropdownState extends State<_Dropdown> {
       padding: const EdgeInsets.only(bottom: 14),
       child: DropdownButtonFormField<String>(
         value: widget.value.isEmpty ? null : widget.value,
-        decoration: InputDecoration(
-          labelText: widget.label,
-          errorText: widget.error,
-          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-        ),
+        decoration: InputDecoration(labelText: widget.label, errorText: widget.error),
+        dropdownColor: QCutColors.surfaceContainerHigh,
         items: widget.options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
         onChanged: (v) => widget.onChanged(v ?? ''),
       ),
@@ -387,7 +359,7 @@ class _Checkbox extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Row(children: [
         Checkbox(value: value, onChanged: onChanged),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 13, color: QCutColors.onSurface))),
       ]),
       if (error != null) Padding(padding: const EdgeInsets.only(left: 12), child: Text(error!, style: const TextStyle(color: QCutColors.error, fontSize: 12))),
     ]);
@@ -401,22 +373,27 @@ class _SuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.check_circle, size: 72, color: QCutColors.success),
-            const SizedBox(height: 24),
-            const Text('Registration Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: QCutColors.onSurface)),
-            const SizedBox(height: 16),
-            Text('Thank you for registering. We\'ve sent a confirmation email. Our team will review your application within 24-48 hours.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, height: 1.5, color: QCutColors.onSurfaceVariant)),
-            const SizedBox(height: 32),
-            SizedBox(width: double.infinity, height: 50,
-              child: ElevatedButton(onPressed: onBackToHome, style: ElevatedButton.styleFrom(backgroundColor: QCutColors.primary, foregroundColor: QCutColors.onSurface, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: const Text('Back to Home'))),
-          ]),
+      backgroundColor: QCutColors.surface,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Container(
+                width: 88, height: 88,
+                decoration: BoxDecoration(gradient: QCutGradients.success, shape: BoxShape.circle, boxShadow: QCutShadows.glow(QCutColors.success)),
+                child: const Icon(Icons.check, color: Colors.white, size: 48),
+              ),
+              const SizedBox(height: 24),
+              const Text('Registration Submitted!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: QCutColors.onSurface)),
+              const SizedBox(height: 16),
+              Text('Thank you for registering. We\'ve sent a confirmation email. Our team will review your application within 24-48 hours.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, height: 1.5, color: QCutColors.onSurfaceVariant)),
+              const SizedBox(height: 32),
+              QPrimaryButton(onPressed: onBackToHome, icon: Icons.home, child: const Text('Back to Home')),
+            ]),
+          ),
         ),
       ),
     );
