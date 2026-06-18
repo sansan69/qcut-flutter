@@ -58,7 +58,7 @@ class QCutApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Q - CUT',
+      title: 'QCUT',
       debugShowCheckedModeBanner: false,
       theme: QCutTheme.dark,
       themeMode: ThemeMode.dark,
