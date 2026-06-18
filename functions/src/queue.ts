@@ -201,11 +201,11 @@ export const callNextToken = functions.https.onCall(
       const data = doc.data();
       const entryRef = doc.ref;
       const calledAt = Timestamp.now();
-      tx.update(entryRef, {status: 'called', calledAt});
+      tx.update(entryRef, {status: 'serving', calledAt});
 
       const entry = {
         ...data,
-        status: 'called',
+        status: 'serving',
         calledAt,
         tokenNumber: data.tokenNumber,
       };

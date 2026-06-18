@@ -10,7 +10,6 @@ class AuthRouter extends StatefulWidget {
   final Widget customerHome;
   final Widget providerDashboard;
   final Widget platformAdminDashboard;
-  final Widget onboardingScreen;
   final Widget landingScreen;
 
   const AuthRouter({
@@ -18,7 +17,6 @@ class AuthRouter extends StatefulWidget {
     required this.customerHome,
     required this.providerDashboard,
     required this.platformAdminDashboard,
-    required this.onboardingScreen,
     required this.landingScreen,
   });
 
@@ -28,7 +26,6 @@ class AuthRouter extends StatefulWidget {
 
 class _AuthRouterState extends State<AuthRouter> {
   late final AuthRepository _authRepository;
-  bool _initializing = true;
 
   @override
   void initState() {
