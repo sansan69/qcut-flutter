@@ -1,6 +1,7 @@
 import * as functions from 'firebase-functions/v2';
 import * as admin from 'firebase-admin';
 import {FieldValue, Timestamp} from 'firebase-admin/firestore';
+import {sendTokenNotification} from './notifications';
 
 const region = 'asia-south1';
 const callableOptions = {cors: ['qcut.co.in', 'localhost'], region};
@@ -197,13 +198,25 @@ export const callNextToken = functions.https.onCall(
       }
 
       const doc = snapshot.docs[0];
+      const data = doc.data();
       const entryRef = doc.ref;
       const calledAt = Timestamp.now();
       tx.update(entryRef, {status: 'called', calledAt});
 
-      const entry = {...doc.data(), status: 'called', calledAt};
+      const entry = {
+        ...data,
+        status: 'called',
+        calledAt,
+        tokenNumber: data.tokenNumber,
+      };
       return {id: doc.id, entry};
     });
+
+    try {
+      await sendTokenNotification(tenantId, date, result.entry.tokenNumber);
+    } catch (err) {
+      console.error('Failed to send token notification:', err);
+    }
 
     return result;
   },
