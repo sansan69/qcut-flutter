@@ -60,7 +60,8 @@ class QCutApp extends StatelessWidget {
     return MaterialApp(
       title: 'Q - CUT',
       debugShowCheckedModeBanner: false,
-      theme: QCutTheme.light,
+      theme: QCutTheme.dark,
+      themeMode: ThemeMode.dark,
       locale: const Locale('ml'),
       supportedLocales: const [Locale('en'), Locale('ml')],
       localizationsDelegates: const [

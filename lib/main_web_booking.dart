@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:qcut_flutter/data/services/firebase_options.dart';
 import 'package:qcut_flutter/ui/customer/web_booking_page.dart';
+import 'package:qcut_flutter/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,8 @@ class WebBookingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'QCUT Booking',
-      theme: ThemeData(useMaterial3: true),
+      theme: QCutTheme.dark,
+      themeMode: ThemeMode.dark,
       onGenerateRoute: (settings) {
         if (initError != null) {
           return MaterialPageRoute(
