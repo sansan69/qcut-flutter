@@ -118,11 +118,13 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         await _secure.clearCredentials();
       }
-
-      // Save last email for autofill hint
       await _prefs?.setLastEmail(email);
 
-      if (mounted) setState(() => _loading = false);
+      // Pop back to root so AuthRouter shows the dashboard for the signed-in user.
+      if (mounted) {
+        setState(() => _loading = false);
+        Navigator.of(context).popUntil((r) => r.isFirst);
+      }
     } on AuthException catch (e) {
       setState(() { _error = e.message; _loading = false; });
     } catch (e) {
