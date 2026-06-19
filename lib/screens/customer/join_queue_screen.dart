@@ -155,8 +155,9 @@ class _JoinQueueScreenState extends State<JoinQueueScreen> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _phoneCtrl,
-              decoration: const InputDecoration(labelText: 'Phone Number (optional)', prefixIcon: Icon(Icons.phone)),
+              decoration: const InputDecoration(labelText: 'Phone Number *', prefixIcon: Icon(Icons.phone)),
               keyboardType: TextInputType.phone,
+              validator: (v) => (v == null || v.trim().length < 10) ? 'Enter a valid 10-digit number' : null,
             ),
             const SizedBox(height: 32),
             QPrimaryButton(onPressed: _join, icon: Icons.login, child: const Text('Join Queue')),

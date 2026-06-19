@@ -70,7 +70,7 @@ class _BookingScreenState extends State<BookingScreen> {
       case 0: return _selectedService != null;
       case 1: return _selectedDate != null && _selectedTimeSlot != null;
       case 2: return _selectedBarber != null;
-      case 3: return _nameCtrl.text.trim().isNotEmpty;
+      case 3: return _nameCtrl.text.trim().isNotEmpty && _phoneCtrl.text.trim().isNotEmpty;
       case 4: return true;
       default: return false;
     }
@@ -158,7 +158,7 @@ class _BookingScreenState extends State<BookingScreen> {
       case 0: return _ServiceStep(services: widget.services, selected: _selectedService, onSelect: (s) => setState(() => _selectedService = s));
       case 1: return _DateTimeStep(dates: _availableDates, slots: _timeSlots, selectedDate: _selectedDate, selectedSlot: _selectedTimeSlot, onDatePicked: (d) => setState(() => _selectedDate = d), onSlotPicked: (s) => setState(() => _selectedTimeSlot = s));
       case 2: return _BarberStep(barbers: widget.barbers, selected: _selectedBarber, onSelect: (b) => setState(() => _selectedBarber = b));
-      case 3: return _DetailsStep(formKey: _formKey, nameCtrl: _nameCtrl, phoneCtrl: _phoneCtrl);
+      case 3: return _DetailsStep(formKey: _formKey, nameCtrl: _nameCtrl, phoneCtrl: _phoneCtrl, onChanged: () => setState(() {}));
       case 4: return _SummaryStep(service: _selectedService!.name, date: _formatDate(_selectedDate!), time: _selectedTimeSlot!, barber: _selectedBarber!.name, duration: _selectedService!.durationMin, name: _nameCtrl.text.trim(), phone: _phoneCtrl.text.trim());
       default: return const SizedBox();
     }
@@ -362,9 +362,10 @@ class _BarberStep extends StatelessWidget {
 class _DetailsStep extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController nameCtrl;
-  final TextEditingController phoneCtrl;
+   final TextEditingController phoneCtrl;
+  final VoidCallback onChanged;
 
-  const _DetailsStep({required this.formKey, required this.nameCtrl, required this.phoneCtrl});
+  const _DetailsStep({required this.formKey, required this.nameCtrl, required this.phoneCtrl, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -380,12 +381,15 @@ class _DetailsStep extends StatelessWidget {
           decoration: const InputDecoration(labelText: 'Full Name *', prefixIcon: Icon(Icons.person)),
           textCapitalization: TextCapitalization.words,
           validator: (v) => (v == null || v.trim().isEmpty) ? 'Name is required' : null,
+          onChanged: (_) => onChanged(),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: phoneCtrl,
-          decoration: const InputDecoration(labelText: 'Phone Number', prefixIcon: Icon(Icons.phone)),
+          decoration: const InputDecoration(labelText: 'Phone Number *', prefixIcon: Icon(Icons.phone)),
           keyboardType: TextInputType.phone,
+          validator: (v) => (v == null || v.trim().length < 10) ? 'Enter a valid 10-digit number' : null,
+          onChanged: (_) => onChanged(),
         ),
       ]),
     );
