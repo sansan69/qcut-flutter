@@ -12,8 +12,25 @@ class AuthRepository {
   Future<String?> resolveRole() async {
     final user = _auth.currentUser;
     if (user == null) return null;
+
+    // Force-refresh the token so we get the latest custom claims.
     final token = await user.getIdTokenResult(true);
-    return token.claims?['role'] as String?;
+    var role = token.claims?['role'] as String?;
+
+    // If still null, the claims haven't been synced yet — call the function
+    // that reads Firestore and sets them, then refresh the token again.
+    if (role == null) {
+      try {
+        await _functions.call(FunctionsService.refreshCustomClaims, {});
+        await user.getIdToken(true);
+        final refreshed = await user.getIdTokenResult(false);
+        role = refreshed.claims?['role'] as String?;
+      } catch (_) {
+        // Functions may be unavailable (e.g. widget tests) — fall through.
+      }
+    }
+
+    return role;
   }
 
   Future<String?> resolveTenantId() async {

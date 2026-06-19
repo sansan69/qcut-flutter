@@ -36,7 +36,9 @@ class FirebaseAuthService implements AuthService {
   AuthRole _resolveRole(String? email, bool isAnonymous) {
     if (isAnonymous) return AuthRole.customer;
     if (_superAdminEmails.contains(email ?? '')) return AuthRole.superAdmin;
-    return AuthRole.owner;
+    // Non-admin signed-in users default to customer — the real role is resolved
+    // from Firebase custom claims by AuthRouter/AuthRepository.
+    return AuthRole.customer;
   }
 
   @override Stream<AuthUser?> get authStateChanges => _controller.stream;

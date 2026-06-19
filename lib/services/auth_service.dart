@@ -75,7 +75,7 @@ class DemoAuthService implements AuthService {
     if (email.isEmpty || password.length < 4) {
       throw AuthException('Invalid credentials');
     }
-    final role = email == 'admin@qcut.in' ? AuthRole.superAdmin : AuthRole.owner;
+    final role = email == 'admin@qcut.in' ? AuthRole.superAdmin : AuthRole.customer;
     _currentUser = AuthUser(uid: 'demo-${email.hashCode}', email: email, role: role);
     _controller.add(_currentUser);
     return _currentUser!;
@@ -86,7 +86,7 @@ class DemoAuthService implements AuthService {
     if (email.isEmpty || password.length < 4) {
       throw AuthException('Password must be at least 4 characters');
     }
-    _currentUser = AuthUser(uid: 'demo-${email.hashCode}', email: email, displayName: displayName, role: AuthRole.owner);
+    _currentUser = AuthUser(uid: 'demo-${email.hashCode}', email: email, displayName: displayName, role: AuthRole.customer);
     _controller.add(_currentUser);
     return _currentUser!;
   }
