@@ -8,15 +8,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      # The Firestore emulator (used by the functions integration tests) needs
-      # a Java runtime. ubuntu-latest ships one, but we set it explicitly.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
       - name: Install Firebase CLI
         run: npm install -g firebase-tools
-      # `emulators:exec` starts the emulator, runs the command against it, then
-      # tears it down — no background-process or port-wait timing race.
       - name: Install deps & run functions tests against emulator
-        run: cd functions && npm ci && firebase emulators:exec --only firestore "npm test"
+        run: cd functions && npm ci && firebase emulators:exec --project demo-qcut --only firestore "npm test"
