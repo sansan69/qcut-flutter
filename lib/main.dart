@@ -15,6 +15,8 @@ import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_auth_service.dart';
 import 'services/firestore_service.dart';
+import 'services/preferences_service.dart';
+import 'services/secure_storage_service.dart';
 import 'screens/landing/landing_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -41,6 +43,9 @@ import 'models/shop_models.dart';
 import 'models/token_entry.dart';
 import 'models/booking.dart';
 
+final secureStorage = SecureStorageService();
+PreferencesService? preferences;
+
 Future<void> initFirebase() async {
   try {
     await Firebase.initializeApp(
@@ -55,6 +60,9 @@ Future<void> initFirebase() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initFirebase();
+
+  // Initialize local storage services
+  preferences = await PreferencesService.init();
 
   await LocalNotificationService.instance.init();
   final fcmService = FcmService(FirebaseMessaging.instance);
@@ -97,7 +105,10 @@ class QCutApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       home: AuthRouter(
-        landingScreen: const AuthLandingScreen(),
+        landingScreen: AuthLandingScreen(
+          secureStorage: secureStorage,
+          preferences: preferences,
+        ),
         resolveScreen: (role) => RoleShell(role: role),
       ),
     );

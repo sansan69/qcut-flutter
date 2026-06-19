@@ -12,14 +12,23 @@ import 'package:qcut_flutter/screens/landing/landing_screen.dart';
 import 'package:qcut_flutter/screens/onboarding/onboarding_screen.dart';
 import 'package:qcut_flutter/services/auth_service.dart';
 import 'package:qcut_flutter/services/firebase_auth_service.dart';
+import 'package:qcut_flutter/services/preferences_service.dart';
+import 'package:qcut_flutter/services/secure_storage_service.dart';
 
 /// The landing surface shown when no user is signed in. Wires the real
 /// [LoginScreen] (admin and customer) instead of a placeholder, plus the
 /// shop browser for tapping a shop into its token/booking flow.
 class AuthLandingScreen extends StatelessWidget {
   final ShopRepository? shopRepository;
+  final SecureStorageService? secureStorage;
+  final PreferencesService? preferences;
 
-  const AuthLandingScreen({super.key, this.shopRepository});
+  const AuthLandingScreen({
+    super.key,
+    this.shopRepository,
+    this.secureStorage,
+    this.preferences,
+  });
 
   AuthService _authService() {
     // Mirror _AppRootState's fallback logic: prefer Firebase, fall back to demo.
@@ -64,6 +73,8 @@ class AuthLandingScreen extends StatelessWidget {
       builder: (_) => LoginScreen(
         auth: auth,
         role: LoginRole.owner,
+        secureStorage: secureStorage,
+        preferences: preferences,
         onRegisterShop: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => OnboardingScreen(
             onBackToHome: () { Navigator.popUntil(context, (r) => r.isFirst); },
@@ -80,6 +91,8 @@ class AuthLandingScreen extends StatelessWidget {
       builder: (_) => LoginScreen(
         auth: auth,
         role: LoginRole.customer,
+        secureStorage: secureStorage,
+        preferences: preferences,
         onRegisterCustomer: () => Navigator.push(context, MaterialPageRoute(
           builder: (_) => ClientSignupScreen(auth: auth, onAlreadyHaveAccount: () => Navigator.pop(context)),
         )),
