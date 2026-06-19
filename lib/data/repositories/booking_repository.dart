@@ -25,7 +25,7 @@ class BookingRepository {
     required String date,
     String? staffId,
   }) async {
-    final result = await _functions.call('getAvailableSlots', {
+    final result = await _functions.call(FunctionsService.getAvailableSlots, {
       'tenantId': tenantId,
       'serviceId': serviceId,
       'date': date,

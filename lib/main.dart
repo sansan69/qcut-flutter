@@ -193,7 +193,7 @@ class QCutApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: QCutTheme.dark,
       themeMode: ThemeMode.dark,
-      locale: const Locale('ml'),
+      locale: preferences?.locale != null ? Locale(preferences!.locale!) : const Locale('en'),
       supportedLocales: const [Locale('en'), Locale('ml')],
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -256,109 +256,6 @@ class _RoleShellState extends State<RoleShell> {
         // the CustomerHomeScreen with scan access.
         return CustomerHomeScreen();
     }
-  }
-}
-
-// ═══════════════════════════════════════════════
-// Root — routes to Super Admin / Owner / Customer
-// ═══════════════════════════════════════════════
-
-class AppRoot extends StatefulWidget {
-  const AppRoot({super.key});
-  @override
-  State<AppRoot> createState() => _AppRootState();
-}
-
-class _AppRootState extends State<AppRoot> {
-  late final AuthService _auth;
-  final FirestoreService _db = FirestoreService();
-  StreamSubscription<AuthUser?>? _sub;
-  AuthUser? _user;
-  bool _loadingTenant = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // Try Firebase — fall back to demo if Firebase isn't initialized
-    try {
-      _auth = FirebaseAuthService();
-    } catch (e) {
-      debugPrint('Falling back to DemoAuthService: $e');
-      _auth = DemoAuthService();
-    }
-    _user = _auth.currentUser;
-    _sub = _auth.authStateChanges.listen((user) {
-      setState(() { _user = user; _loadingTenant = false; });
-    });
-  }
-
-  @override
-  void dispose() {
-    _sub?.cancel();
-    _auth.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_loadingTenant) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    // Super admin → separate dashboard
-    if (_user != null && _user!.isSuperAdmin) {
-      return SuperAdminApp(auth: _auth, db: _db);
-    }
-
-    // Owner → find or create tenant, then show dashboard
-    if (_user != null && _user!.isOwner) {
-      return OwnerApp(auth: _auth, db: _db, user: _user!);
-    }
-
-    // Customer (anonymous) → normal app
-    if (_user != null) {
-      return QCutHome(auth: _auth, user: _user!, db: _db, tenantId: 'demo');
-    }
-
-    // Not signed in → Customer-centric Landing
-    return LandingScreen(
-      onJoinQueue: () async {
-        try {
-          await _auth.signInAnonymously(displayName: 'Customer');
-        } catch (e) {
-          debugPrint('Anonymous sign-in failed: $e');
-        }
-      },
-      onMyBookings: () async {
-        try {
-          await _auth.signInAnonymously(displayName: 'Customer');
-        } catch (e) {
-          debugPrint('Anonymous sign-in failed: $e');
-        }
-      },
-      onAdminLogin: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => LoginScreen(
-          auth: _auth,
-          role: LoginRole.owner,
-          onRegisterShop: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context), auth: _auth),
-          )),
-        ),
-      )),
-      onClientLogin: () => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => LoginScreen(
-          auth: _auth,
-          role: LoginRole.customer,
-          onRegisterCustomer: () => Navigator.push(context, MaterialPageRoute(
-            builder: (_) => ClientSignupScreen(auth: _auth, onAlreadyHaveAccount: () => Navigator.pop(context)),
-          )),
-          onUseGuest: () => Navigator.pop(context),
-        ),
-      )),
-      onOpenShop: (shop) => Navigator.push(context, MaterialPageRoute(
-        builder: (_) => ShopBrowserScreen(shop: shop),
-      )),
-    );
   }
 }
 

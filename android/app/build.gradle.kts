@@ -23,7 +23,7 @@ android {
     defaultConfig {
         applicationId = "com.kalki.qcut"
         // mobile_scanner requires minSdk 23; keep in sync with that floor.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

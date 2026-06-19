@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/onboarding_models.dart';
 import '../../services/auth_service.dart';
@@ -409,4 +410,4 @@ class _SuccessScreen extends StatelessWidget {
   }
 }
 
-int min(int a, int b) => a < b ? a : b;
+
