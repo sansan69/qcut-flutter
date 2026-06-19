@@ -133,17 +133,23 @@ class _LandingScreenState extends State<LandingScreen> {
             duration: const Duration(milliseconds: 200),
             width: 44, height: 44,
             decoration: BoxDecoration(
-              gradient: _logoHeld ? QCutGradients.accent : QCutGradients.primary,
+              color: QCutColors.iconBackground,
               borderRadius: BorderRadius.circular(14),
               boxShadow: _logoHeld ? QCutShadows.glow() : [BoxShadow(color: QCutColors.primary.withValues(alpha: 0.25), blurRadius: 10)],
             ),
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _logoHeld
-                    ? const Icon(Icons.admin_panel_settings, color: Colors.white, size: 22, key: ValueKey('a'))
-                    : const Text('Q', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white), key: ValueKey('q')),
-              ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              child: _logoHeld
+                  ? const Icon(Icons.admin_panel_settings, color: Colors.white, size: 22, key: ValueKey('a'))
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Image.asset(
+                        'assets/logo/logo_transparent.png',
+                        width: 40, height: 40,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => const Text('Q', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white), key: ValueKey('q')),
+                      ),
+                    ),
             ),
           ),
         ),
