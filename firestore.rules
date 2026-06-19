@@ -49,11 +49,25 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Token queue entries (public read, authenticated create, admin/provider manage) ──
+    // ── Token queue entries (public create, admin/provider manage) ──
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
       allow read: if true;
-      allow create: if isAuthenticated();
+      allow create: if true;  // anyone can join queue
       allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Bookings (public create, admin/provider manage) ──
+    match /tenants/{tenantId}/bookings/{id} {
+      allow read: if true;
+      allow create: if true;  // anyone can book
+      allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
+      allow delete: if isPlatformAdmin();
+    }
+
+    // ── Customers ──
+    match /tenants/{tenantId}/customers/{id} {
+      allow read, create, update: if isPlatformAdmin() || isProviderForTenant(tenantId);
       allow delete: if isPlatformAdmin();
     }
 
