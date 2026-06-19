@@ -26,51 +26,32 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Staff / Barbers (public read if active) ──
+    // ── Staff / Barbers / Services / Slots (public read, admin/provider write) ──
     match /tenants/{tenantId}/staff/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
+      allow read: if true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
     match /tenants/{tenantId}/barbers/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
+      allow read: if true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
-    // ── Services (public read if active) ──
     match /tenants/{tenantId}/services/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
+      allow read: if true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
-    // ── Slots ──
+    // ── Slots (public read, admin/provider write) ──
     match /tenants/{tenantId}/slots/{id} {
       allow read: if true;
       allow create, update: if isPlatformAdmin() || isProviderForTenant(tenantId);
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Bookings (customers create, admin/provider manage) ──
-    match /tenants/{tenantId}/bookings/{id} {
-      allow read: if isPlatformAdmin()
-        || isProviderForTenant(tenantId)
-        || (isAuthenticated() && request.auth.uid == resource.data.customerId);
-      allow create: if isAuthenticated();
-      allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
-      allow delete: if isPlatformAdmin();
-    }
-
-    // ── Customers ──
-    match /tenants/{tenantId}/customers/{id} {
-      allow read, create, update: if isPlatformAdmin() || isProviderForTenant(tenantId);
-      allow delete: if isPlatformAdmin();
-    }
-
-    // ── Token queue entries (customers create, admin/provider manage) ──
+    // ── Token queue entries (public read, authenticated create, admin/provider manage) ──
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
-      allow read: if isPlatformAdmin()
-        || isProviderForTenant(tenantId)
-        || (isAuthenticated() && request.auth.uid == resource.data.customerId);
+      allow read: if true;
       allow create: if isAuthenticated();
       allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
       allow delete: if isPlatformAdmin();
