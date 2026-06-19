@@ -1,0 +1,36 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Shop logos/images — readable by anyone, writable by provider/admin
+    match /shops/{tenantId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && (request.auth.token.role == 'platform_admin'
+          || (request.auth.token.role == 'provider' && request.auth.token.tenantId == tenantId));
+    }
+
+    // QR codes — readable by anyone, writable by provider/admin
+    match /qrcodes/{tenantId}/{allPaths=**} {
+      allow read: if true;
+      allow create, update, delete: if request.auth != null
+        && (request.auth.token.role == 'platform_admin'
+          || (request.auth.token.role == 'provider' && request.auth.token.tenantId == tenantId));
+    }
+
+    // User uploads — only owner can read/write their own
+    match /users/{uid}/{allPaths=**} {
+      allow read, create, update, delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Onboarding documents — readable by admin, writable by creator
+    match /onboarding/{submissionId}/{allPaths=**} {
+      allow read: if request.auth != null && request.auth.token.role == 'platform_admin';
+      allow create: if request.auth != null;
+    }
+
+    // Default deny everything else
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.token.role == 'platform_admin';
+    }
+  }
+}

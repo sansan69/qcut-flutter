@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "appointment-32f4a"
+  },
+  "targets": {
+    "appointment-32f4a": {
+      "storage": {
+        "default": [
+          "appointment-32f4a.firebasestorage.app"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

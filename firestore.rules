@@ -21,8 +21,10 @@ service cloud.firestore {
         && request.auth.token.tenantId == tenantId;
     }
 
-    function isCustomer() {
-      return isAuthenticated() && request.auth.token.role == 'customer';
+    function isOwnerOfTenant(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.role == 'provider'
+        && request.auth.token.tenantId == tenantId;
     }
 
     // Public read for active tenants enables the web booking page (qcut.co.in/s/{slug}).
@@ -30,7 +32,9 @@ service cloud.firestore {
     // anonymous customers can view the shop without an attestation token.
     match /tenants/{tenantId} {
       allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
-      allow create: if isPlatformAdmin() && request.app != null;
+      allow create: if (isPlatformAdmin()
+        || (isOwnerOfTenant(tenantId) && request.resource.data.ownerEmail == request.auth.token.email))
+        && request.app != null;
       allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
       allow delete: if isPlatformAdmin() && request.app != null;
     }
@@ -38,6 +42,8 @@ service cloud.firestore {
     // Public read for staff and services lets customers see availability on the booking page.
     match /tenants/{tenantId}/staff/{id} {
       allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/barbers/{id} {
@@ -52,17 +58,36 @@ service cloud.firestore {
       allow delete: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
+    match /tenants/{tenantId}/slots/{id} {
+      allow read: if true;
+      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
+    }
+
     match /tenants/{tenantId}/bookings/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if isPlatformAdmin()
+        || isProviderForTenant(tenantId)
+        || (isAuthenticated() && request.auth.uid == resource.data.customerId);
+      allow create: if (isAuthenticated() || request.app != null)
+        && request.resource.data.tenantId == tenantId;
+      allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /tenants/{tenantId}/customers/{id} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) && request.app != null;
+      allow create: if isAuthenticated() && request.app != null;
+      allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if isPlatformAdmin() && request.app != null;
     }
 
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
-      allow read: if (isPlatformAdmin() || isProviderForTenant(tenantId) || isCustomer()) && request.app != null;
-      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow read: if isPlatformAdmin()
+        || isProviderForTenant(tenantId)
+        || (isAuthenticated() && request.auth.uid == resource.data.customerId);
+      allow create: if (isAuthenticated() || true)
+        && request.resource.data.tenantId == tenantId;
+      allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
       allow delete: if isPlatformAdmin() && request.app != null;
     }
 
