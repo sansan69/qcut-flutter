@@ -73,10 +73,12 @@ class FirestoreService {
   }
 
   Future<void> updateBarber(String tenantId, Barber barber) {
+    final map = Map<String, dynamic>.from(barber.toMap());
+    map.removeWhere((_, v) => v == null);
     return _db
         .collection('tenants').doc(tenantId)
         .collection('barbers').doc(barber.id)
-        .update(barber.toMap());
+        .update(map);
   }
 
   Future<void> deleteBarber(String tenantId, String barberId) {

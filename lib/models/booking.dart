@@ -72,8 +72,46 @@ class Booking {
       'serviceType': serviceType,
       'bookingCode': bookingCode,
       'durationMin': durationMin,
-      'createdAt': createdAt,
+      if (createdAt != null) 'createdAt': createdAt,
       'updatedAt': DateTime.now(),
     };
+  }
+
+  Booking copyWith({
+    String? id,
+    String? tenantId,
+    String? customerName,
+    String? phoneNumber,
+    String? barberId,
+    String? barberName,
+    String? date,
+    String? timeSlot,
+    DateTime? startTime,
+    DateTime? endTime,
+    String? status,
+    String? serviceType,
+    String? bookingCode,
+    int? durationMin,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Booking(
+      id: id ?? this.id,
+      tenantId: tenantId ?? this.tenantId,
+      customerName: customerName ?? this.customerName,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      barberId: barberId ?? this.barberId,
+      barberName: barberName ?? this.barberName,
+      date: date ?? this.date,
+      timeSlot: timeSlot ?? this.timeSlot,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      status: status ?? this.status,
+      serviceType: serviceType ?? this.serviceType,
+      bookingCode: bookingCode ?? this.bookingCode,
+      durationMin: durationMin ?? this.durationMin,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? DateTime.now(),
+    );
   }
 }

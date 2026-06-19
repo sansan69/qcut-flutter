@@ -71,7 +71,8 @@ class Barber {
     'name': name, 'photoURL': photoURL, 'isActive': isActive,
     'order': order, 'scheduleStart': scheduleStart, 'scheduleEnd': scheduleEnd,
     'serviceIds': serviceIds,
-    'createdAt': createdAt, 'updatedAt': DateTime.now(),
+    if (createdAt != null) 'createdAt': createdAt,
+    'updatedAt': DateTime.now(),
   };
 }
 

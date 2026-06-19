@@ -24,8 +24,10 @@ class BiometricAuthService {
     try {
       return await _auth.authenticate(
         localizedReason: reason,
-        biometricOnly: false,
-        persistAcrossBackgrounding: true,
+        options: const AuthenticationOptions(
+          biometricOnly: false,
+          stickyAuth: true,
+        ),
       );
     } on PlatformException catch (_) {
       return false;

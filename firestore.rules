@@ -85,7 +85,7 @@ service cloud.firestore {
       allow read: if isPlatformAdmin()
         || isProviderForTenant(tenantId)
         || (isAuthenticated() && request.auth.uid == resource.data.customerId);
-      allow create: if (isAuthenticated() || true)
+      allow create: if (isAuthenticated() || request.app != null)
         && request.resource.data.tenantId == tenantId;
       allow update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
       allow delete: if isPlatformAdmin() && request.app != null;

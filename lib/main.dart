@@ -744,7 +744,7 @@ class _QCutHomeState extends State<QCutHome> {
   void _cancelBooking(Booking b) {
     setState(() {
       final i = _bookings.indexOf(b);
-      _bookings[i] = Booking(id: b.id, tenantId: b.tenantId, customerName: b.customerName, phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName, date: b.date, timeSlot: b.timeSlot, status: 'cancelled', serviceType: b.serviceType, bookingCode: b.bookingCode, durationMin: b.durationMin, createdAt: b.createdAt, updatedAt: DateTime.now());
+      _bookings[i] = b.copyWith(status: 'cancelled', updatedAt: DateTime.now());
     });
     widget.db.updateBookingStatus(_tenantId, b.id, 'cancelled').catchError((e) {
           if (mounted) {

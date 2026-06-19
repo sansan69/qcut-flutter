@@ -73,7 +73,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         } catch (e) {
           debugPrint('Auth account may already exist: $e');
           try { await widget.auth!.signInWithEmail(_form.ownerEmail.trim(), _form.password); }
-          catch (_) {}
+          catch (signInErr) {
+            debugPrint('Sign-in failed: $signInErr');
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Authentication error: ${e.toString().replaceFirst("Exception: ", "")}')),
+              );
+            }
+            setState(() => _loading = false);
+            return;
+          }
         }
       }
       await FirestoreService().submitOnboarding(_form.toMap());
