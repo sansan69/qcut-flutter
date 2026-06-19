@@ -26,20 +26,20 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Staff / Barbers ──
+    // ── Staff / Barbers (public read if active) ──
     match /tenants/{tenantId}/staff/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
     match /tenants/{tenantId}/barbers/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
-    // ── Services ──
+    // ── Services (public read if active) ──
     match /tenants/{tenantId}/services/{id} {
-      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.isActive == true;
       allow create, update, delete: if isPlatformAdmin() || isProviderForTenant(tenantId);
     }
 
