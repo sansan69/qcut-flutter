@@ -43,10 +43,17 @@
 		</array>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
-		<key>NSCameraUsageDescription</key>
-		<string>This app needs camera access to scan shop QR codes</string>
-		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>QCUT uses your location to show the nearest shops and queue wait times.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan shop QR codes</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>QCUT uses Face ID to unlock the app securely without typing your password</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>QCUT uses your location to show the nearest shops and queue wait times.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIStatusBarHidden</key>

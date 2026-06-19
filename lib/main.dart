@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:qcut_flutter/data/services/app_check_service.dart';
 import 'package:qcut_flutter/data/services/fcm_service.dart';
 import 'package:qcut_flutter/data/services/local_notification_service.dart';
@@ -15,6 +16,7 @@ import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
 import 'services/firebase_auth_service.dart';
 import 'services/firestore_service.dart';
+import 'services/permission_service.dart';
 import 'services/preferences_service.dart';
 import 'services/secure_storage_service.dart';
 import 'screens/landing/landing_screen.dart';
@@ -85,6 +87,100 @@ void main() async {
   });
 
   runApp(const QCutApp());
+  // Show permission prompt after first frame, if not already shown.
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      final alreadyDone = await PermissionService.hasAllCritical();
+      if (!alreadyDone) {
+        final prefs = await SharedPreferences.getInstance();
+        final seen = prefs.getBool('qcut_permissions_shown') ?? false;
+        if (!seen) await _showPermissionGate();
+      }
+    } catch (_) {
+      // Permission checks unavailable in test — skip.
+    }
+  });
+}
+
+Future<void> _showPermissionGate() async {
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const _PermissionDialog(),
+  );
+  await SharedPreferences.getInstance()
+      .then((p) => p.setBool('qcut_permissions_shown', true));
+}
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+class _PermissionDialog extends StatelessWidget {
+  const _PermissionDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        backgroundColor: const Color(0xFF1A1A24),
+        title: const Text('Welcome to QCUT',
+            style: TextStyle(color: Color(0xFFE8E6F0), fontWeight: FontWeight.w800)),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('We need a few permissions:',
+                style: TextStyle(color: Color(0xFF9E9CB0))),
+            const SizedBox(height: 16),
+            _DialogCard(icon: Icons.camera_alt, title: 'Camera', subtitle: 'Scan QR codes'),
+            _DialogCard(icon: Icons.notifications, title: 'Notifications', subtitle: 'Token alerts'),
+            _DialogCard(icon: Icons.location_on, title: 'Location', subtitle: 'Nearby shops'),
+          ]),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              SharedPreferences.getInstance()
+                  .then((p) => p.setBool('qcut_permissions_shown', true));
+            },
+            child: const Text('Skip'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await PermissionService.requestAll(context);
+              if (context.mounted) Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6B4EE6),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DialogCard extends StatelessWidget {
+  final IconData icon; final String title; final String subtitle;
+  const _DialogCard({required this.icon, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(children: [
+        Icon(icon, color: const Color(0xFF6B4EE6), size: 22),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(color: Color(0xFFE8E6F0), fontWeight: FontWeight.w600)),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF9E9CB0), fontSize: 13)),
+        ])),
+      ]),
+    );
+  }
 }
 
 class QCutApp extends StatelessWidget {
@@ -92,6 +188,7 @@ class QCutApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'QCUT',
       debugShowCheckedModeBanner: false,
       theme: QCutTheme.dark,
