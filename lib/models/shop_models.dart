@@ -1,3 +1,5 @@
+import 'firestore_utils.dart';
+
 // Barber, Service, Tenant, SubscriptionPlan models
 
 // ──────────────────────────────────────────────
@@ -61,7 +63,7 @@ class Barber {
 
   factory Barber.fromMap(Map<String, dynamic> map, String id) => Barber(
     id: id, name: map['name'] ?? '', photoURL: map['photoURL'],
-    isActive: map['isActive'] ?? true, order: map['order'] ?? 0,
+    isActive: map['isActive'] ?? true, order: toInt(map['order']),
     scheduleStart: map['scheduleStart'], scheduleEnd: map['scheduleEnd'],
     serviceIds: List<String>.from(map['serviceIds'] ?? []),
     createdAt: map['createdAt']?.toDate(), updatedAt: map['updatedAt']?.toDate(),
@@ -118,11 +120,11 @@ class Service {
   });
 
   factory Service.fromMap(Map<String, dynamic> map, String id) => Service(
-    id: id, name: map['name'] ?? '', durationMin: map['durationMin'] ?? 0,
-    price: map['price'] ?? 0, isActive: map['isActive'] ?? true,
+    id: id, name: map['name'] ?? '', durationMin: toInt(map['durationMin']),
+    price: toInt(map['price']), isActive: map['isActive'] ?? true,
     tenantId: map['tenantId'],
     category: ServiceCategoryExt.fromString(map['category'] ?? 'hair'),
-    planMinLevel: map['planMinLevel'] ?? 0,
+    planMinLevel: toInt(map['planMinLevel']),
   );
 
   Map<String, dynamic> toMap() => {
@@ -226,7 +228,7 @@ class Tenant {
 
   factory Tenant.fromMap(Map<String, dynamic> map, String id) => Tenant(
     id: id, name: map['name'] ?? '', ownerEmail: map['ownerEmail'] ?? '',
-    businessType: map['businessType'] ?? 'salon', planLevel: map['planLevel'] ?? 0,
+    businessType: map['businessType'] ?? 'salon', planLevel: toInt(map['planLevel']),
     status: map['status'] ?? 'pending', bookingMode: map['bookingMode'] ?? 'token',
     phone: map['phone'] ?? '', address: map['address'] ?? '',
     ownerName: map['ownerName'], ownerPhone: map['ownerPhone'],
@@ -235,7 +237,7 @@ class Tenant {
     district: map['district'], city: map['city'],
     openTime: map['openTime'], closeTime: map['closeTime'],
     slug: map['slug'],
-    latitude: _toDouble(map['latitude']), longitude: _toDouble(map['longitude']),
+    latitude: toDouble(map['latitude']), longitude: toDouble(map['longitude']),
   );
 
   Map<String, dynamic> toMap() => {
@@ -251,12 +253,4 @@ class Tenant {
     if (latitude != null) 'latitude': latitude,
     if (longitude != null) 'longitude': longitude,
   };
-}
-
-/// Coerces Firestore numeric types (int/double/num) into a nullable double.
-double? _toDouble(dynamic v) {
-  if (v == null) return null;
-  if (v is double) return v;
-  if (v is num) return v.toDouble();
-  return null;
 }

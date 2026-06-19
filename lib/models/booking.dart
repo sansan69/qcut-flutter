@@ -1,3 +1,5 @@
+import 'firestore_utils.dart';
+
 /// Booking model — ported from QCUT Kotlin Booking.kt
 class Booking {
   final String id;
@@ -51,7 +53,7 @@ class Booking {
       status: map['status'] ?? 'confirmed',
       serviceType: map['serviceType'] ?? '',
       bookingCode: map['bookingCode'] ?? '',
-      durationMin: map['durationMin'] ?? 0,
+      durationMin: toInt(map['durationMin']),
       createdAt: map['createdAt']?.toDate(),
       updatedAt: map['updatedAt']?.toDate(),
     );

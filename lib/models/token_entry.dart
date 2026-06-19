@@ -1,3 +1,5 @@
+import 'firestore_utils.dart';
+
 /// Token queue entry — ported from QCUT Kotlin TokenEntry.kt
 class TokenEntry {
   final String id;
@@ -27,7 +29,7 @@ class TokenEntry {
   factory TokenEntry.fromMap(Map<String, dynamic> map, String id) {
     return TokenEntry(
       id: id,
-      tokenNumber: map['tokenNumber'] ?? 0,
+      tokenNumber: toInt(map['tokenNumber']),
       name: map['name'] ?? '',
       phone: map['phone'] ?? '',
       status: map['status'] ?? 'waiting',
