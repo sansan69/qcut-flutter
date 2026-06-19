@@ -48,3 +48,5 @@ export {
 } from './booking.js';
 
 export { enforcePlanLimits } from './planLimits.js';
+
+export { createTenantAccount } from './tenantAdmin.js';

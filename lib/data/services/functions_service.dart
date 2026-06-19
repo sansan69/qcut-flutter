@@ -16,6 +16,7 @@ class FunctionsService {
   static const String convertBookingToToken = 'convertBookingToToken';
   static const String enforcePlanLimits = 'enforcePlanLimits';
   static const String refreshCustomClaims = 'refreshCustomClaims';
+  static const String createTenantAccount = 'createTenantAccount';
 
   Future<Map<String, dynamic>> call(String name, Map<String, dynamic> params) async {
     final callable = _functions.httpsCallable(name);

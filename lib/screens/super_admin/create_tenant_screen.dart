@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:qcut_flutter/data/services/functions_service.dart';
 import '../../models/shop_models.dart';
 import '../../theme/app_theme.dart';
 import '../../ui/core/qcut_components.dart';
 
-/// Super Admin: Create new tenant with plan selection.
+/// Super Admin: Create new tenant with plan selection + owner auth account.
+/// Calls the `createTenantAccount` Cloud Function which creates the Firebase
+/// Auth user, Firestore tenant doc, and provider custom claims atomically.
 class CreateTenantScreen extends StatefulWidget {
-  final Function(Map<String, dynamic>) onCreate;
+  final Function(Map<String, dynamic>)? onCreate; // legacy callback, ignored if null
+  final VoidCallback? onCreated; // called after successful creation
 
-  const CreateTenantScreen({super.key, required this.onCreate});
+  const CreateTenantScreen({super.key, this.onCreate, this.onCreated});
 
   @override
   State<CreateTenantScreen> createState() => _CreateTenantScreenState();
@@ -22,6 +27,7 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
   final _ownerNameCtrl = TextEditingController();
   final _ownerPhoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
   String _businessType = 'salon';
   String _bookingMode = 'token';
   int _planLevel = 0;
@@ -34,31 +40,84 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
   void dispose() {
     _nameCtrl.dispose(); _emailCtrl.dispose(); _phoneCtrl.dispose();
     _ownerNameCtrl.dispose(); _ownerPhoneCtrl.dispose(); _addressCtrl.dispose();
+    _passwordCtrl.dispose();
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() { _saving = true; _error = null; });
     HapticFeedback.mediumImpact();
 
-    final data = {
-      'name': _nameCtrl.text.trim(),
-      'ownerEmail': _emailCtrl.text.trim(),
-      'phone': _phoneCtrl.text.trim(),
-      'ownerName': _ownerNameCtrl.text.trim(),
-      'ownerPhone': _ownerPhoneCtrl.text.trim(),
-      'address': _addressCtrl.text.trim(),
-      'businessType': _businessType,
-      'bookingMode': _bookingMode,
-      'planLevel': _planLevel,
-      'openTime': _openTime,
-      'closeTime': _closeTime,
-    };
+    try {
+      final result = await FunctionsService(FirebaseFunctions.instance).call(FunctionsService.createTenantAccount, {
+        'name': _nameCtrl.text.trim(),
+        'ownerEmail': _emailCtrl.text.trim(),
+        'password': _passwordCtrl.text,
+        'phone': _phoneCtrl.text.trim(),
+        'ownerName': _ownerNameCtrl.text.trim(),
+        'ownerPhone': _ownerPhoneCtrl.text.trim(),
+        'address': _addressCtrl.text.trim(),
+        'businessType': _businessType,
+        'bookingMode': _bookingMode,
+        'planLevel': _planLevel,
+        'openTime': _openTime,
+        'closeTime': _closeTime,
+      });
 
-    widget.onCreate(data);
-    Navigator.pop(context);
+      if (!mounted) return;
+      final data = result as Map<String, dynamic>;
+      _showCredentials(
+        email: data['email'] as String,
+        password: data['password'] as String,
+      );
+      widget.onCreated?.call();
+      widget.onCreate?.call({
+        'name': _nameCtrl.text.trim(),
+        'ownerEmail': _emailCtrl.text.trim(),
+        'phone': _phoneCtrl.text.trim(),
+        'ownerName': _ownerNameCtrl.text.trim(),
+        'ownerPhone': _ownerPhoneCtrl.text.trim(),
+        'address': _addressCtrl.text.trim(),
+        'businessType': _businessType,
+        'bookingMode': _bookingMode,
+        'planLevel': _planLevel,
+        'openTime': _openTime,
+        'closeTime': _closeTime,
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() { _error = e.toString(); _saving = false; });
+    }
+  }
+
+  void _showCredentials({required String email, required String password}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: QCutColors.surfaceContainerHigh,
+        title: const Row(children: [
+          Icon(Icons.check_circle, color: QCutColors.success),
+          SizedBox(width: 8),
+          Text('Tenant Created', style: TextStyle(color: QCutColors.onSurface)),
+        ]),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Share these credentials with the shop owner:', style: TextStyle(color: QCutColors.onSurfaceVariant, fontSize: 13)),
+          const SizedBox(height: 16),
+          _CredRow('Email', email),
+          const SizedBox(height: 8),
+          _CredRow('Password', password),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () { Navigator.pop(ctx); Navigator.pop(context); },
+            child: const Text('Done'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -81,6 +140,13 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
           TextFormField(controller: _ownerPhoneCtrl, decoration: _deco('Owner Phone', '9876543210'), keyboardType: TextInputType.phone),
           const SizedBox(height: 14),
           TextFormField(controller: _addressCtrl, decoration: _deco('Address', 'Street, City, District'), maxLines: 2),
+          const SizedBox(height: 14),
+          TextFormField(
+            controller: _passwordCtrl,
+            decoration: _deco('Owner Password *', 'Min 6 characters'),
+            obscureText: true,
+            validator: (v) => (v == null || v.length < 6) ? 'At least 6 characters' : null,
+          ),
           const SizedBox(height: 14),
           DropdownButtonFormField<String>(
             value: _businessType,
@@ -153,4 +219,18 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
   String planMax(SubscriptionPlan p) => '${p.maxBarbers} barbers • ${p.maxServices} services • ${p.appointments ? "Appointments" : "Token only"}';
 
   InputDecoration _deco(String label, String hint) => InputDecoration(labelText: label, hintText: hint);
+}
+
+class _CredRow extends StatelessWidget {
+  final String label;
+  final String value;
+  const _CredRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [
+      SizedBox(width: 80, child: Text(label, style: const TextStyle(color: QCutColors.onSurfaceVariant, fontSize: 13))),
+      Expanded(child: SelectableText(value, style: const TextStyle(color: QCutColors.onSurface, fontWeight: FontWeight.w600))),
+    ]);
+  }
 }

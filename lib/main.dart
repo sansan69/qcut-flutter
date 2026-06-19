@@ -385,16 +385,7 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
   Widget build(BuildContext context) {
     return SuperAdminDashboard(
       tenants: _tenants,
-      onCreateTenant: () => _push(CreateTenantScreen(
-        onCreate: (data) async {
-          try {
-            return await widget.db.createTenant(data);
-          } catch (e) {
-            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Create failed: $e')));
-            return '';
-          }
-        },
-      )),
+      onCreateTenant: () => _push(const CreateTenantScreen()),
       onTapTenant: (t) => _push(TenantDetailScreen(
         tenant: t,
         onUpdatePlan: (level) => widget.db.updateTenantPlan(t.id, level).catchError((e) {
