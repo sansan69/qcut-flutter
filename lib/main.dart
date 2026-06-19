@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:qcut_flutter/data/services/app_check_service.dart';
+import 'package:qcut_flutter/data/services/fcm_service.dart';
+import 'package:qcut_flutter/data/services/local_notification_service.dart';
 import 'package:qcut_flutter/data/services/firebase_options.dart';
 import 'dart:async';
 import 'l10n/app_localizations.dart';
@@ -24,9 +29,9 @@ import 'screens/customer/my_bookings_screen.dart';
 import 'screens/customer/booking_screen.dart';
 import 'screens/common/qr_screen.dart';
 import 'screens/customer/customer_home_screen.dart';
-import 'screens/provider/provider_dashboard_screen.dart';
+import 'screens/customer/client_signup_screen.dart';
+import 'screens/customer/shop_browser_screen.dart';
 import 'screens/super_admin/super_admin_dashboard.dart';
-import 'screens/super_admin/super_admin_dashboard_placeholder.dart';
 import 'ui/core/auth_router.dart';
 import 'ui/core/auth_landing_screen.dart';
 import 'screens/super_admin/create_tenant_screen.dart';
@@ -50,6 +55,27 @@ Future<void> initFirebase() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initFirebase();
+
+  await LocalNotificationService.instance.init();
+  final fcmService = FcmService(FirebaseMessaging.instance);
+  await fcmService.requestPermission();
+  final token = await fcmService.getToken();
+  if (token != null) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'fcmTokens': FieldValue.arrayUnion([token]),
+      }, SetOptions(merge: true));
+    }
+  }
+  FirebaseMessaging.onMessage.listen((message) {
+    final data = message.data;
+    final notifMap = data['notification'] as Map<String, dynamic>?;
+    final title = (data['title'] as String?) ?? notifMap?['title'] as String? ?? 'QCUT';
+    final body = (data['body'] as String?) ?? notifMap?['body'] as String? ?? 'New notification';
+    LocalNotificationService.instance.show(title, body);
+  });
+
   runApp(const QCutApp());
 }
 
@@ -70,13 +96,58 @@ class QCutApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: const AuthRouter(
-        landingScreen: AuthLandingScreen(),
-        customerHome: CustomerHomeScreen(),
-        providerDashboard: ProviderDashboardScreen(),
-        platformAdminDashboard: SuperAdminDashboardPlaceholder(),
+      home: AuthRouter(
+        landingScreen: const AuthLandingScreen(),
+        resolveScreen: (role) => RoleShell(role: role),
       ),
     );
+  }
+}
+
+/// Bridges AuthRouter's claim-based role resolution to the real owner/admin/
+/// customer shells. Replaces the old stub routing (ProviderDashboardScreen,
+/// SuperAdminDashboardPlaceholder) with the fully-built UI.
+class RoleShell extends StatefulWidget {
+  final AppRole role;
+  const RoleShell({super.key, required this.role});
+
+  @override
+  State<RoleShell> createState() => _RoleShellState();
+}
+
+class _RoleShellState extends State<RoleShell> {
+  late final AuthService _auth;
+  final FirestoreService _db = FirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _auth = FirebaseAuthService();
+    } catch (e) {
+      debugPrint('Falling back to DemoAuthService: $e');
+      _auth = DemoAuthService();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+    // No user yet (shouldn't happen — AuthRouter only builds us when signed
+    // in) — show the landing as a safe fallback.
+    if (user == null) return const AuthLandingScreen();
+
+    switch (widget.role) {
+      case AppRole.platformAdmin:
+        return SuperAdminApp(auth: _auth, db: _db);
+      case AppRole.provider:
+        return OwnerApp(auth: _auth, db: _db, user: user);
+      case AppRole.customer:
+      case AppRole.unknown:
+        // Customers browse from the landing; the signed-in customer home is
+        // the CustomerHomeScreen with scan access.
+        return CustomerHomeScreen();
+    }
   }
 }
 
@@ -133,7 +204,7 @@ class _AppRootState extends State<AppRoot> {
 
     // Owner → find or create tenant, then show dashboard
     if (_user != null && _user!.isOwner) {
-      return _OwnerApp(auth: _auth, db: _db, user: _user!);
+      return OwnerApp(auth: _auth, db: _db, user: _user!);
     }
 
     // Customer (anonymous) → normal app
@@ -160,27 +231,41 @@ class _AppRootState extends State<AppRoot> {
       onAdminLogin: () => Navigator.push(context, MaterialPageRoute(
         builder: (_) => LoginScreen(
           auth: _auth,
+          role: LoginRole.owner,
           onRegisterShop: () => Navigator.push(context, MaterialPageRoute(
             builder: (_) => OnboardingScreen(onBackToHome: () => Navigator.pop(context), auth: _auth),
           )),
         ),
+      )),
+      onClientLogin: () => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => LoginScreen(
+          auth: _auth,
+          role: LoginRole.customer,
+          onRegisterCustomer: () => Navigator.push(context, MaterialPageRoute(
+            builder: (_) => ClientSignupScreen(auth: _auth, onAlreadyHaveAccount: () => Navigator.pop(context)),
+          )),
+          onUseGuest: () => Navigator.pop(context),
+        ),
+      )),
+      onOpenShop: (shop) => Navigator.push(context, MaterialPageRoute(
+        builder: (_) => ShopBrowserScreen(shop: shop),
       )),
     );
   }
 }
 
 /// Wraps owner tenant lookup — finds or auto-creates tenant doc
-class _OwnerApp extends StatefulWidget {
+class OwnerApp extends StatefulWidget {
   final AuthService auth;
   final FirestoreService db;
   final AuthUser user;
-  const _OwnerApp({required this.auth, required this.db, required this.user});
+  const OwnerApp({super.key, required this.auth, required this.db, required this.user});
 
   @override
-  State<_OwnerApp> createState() => _OwnerAppState();
+  State<OwnerApp> createState() => _OwnerAppState();
 }
 
-class _OwnerAppState extends State<_OwnerApp> {
+class _OwnerAppState extends State<OwnerApp> {
   Tenant? _tenant;
 
   @override
@@ -295,17 +380,48 @@ class _SuperAdminAppState extends State<SuperAdminApp> {
     return SuperAdminDashboard(
       tenants: _tenants,
       onCreateTenant: () => _push(CreateTenantScreen(
-        onCreate: (data) => widget.db.createTenant(data).catchError((_) => ''),
+        onCreate: (data) async {
+          try {
+            return await widget.db.createTenant(data);
+          } catch (e) {
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Create failed: $e')));
+            return '';
+          }
+        },
       )),
       onTapTenant: (t) => _push(TenantDetailScreen(
         tenant: t,
-        onUpdatePlan: (level) => widget.db.updateTenantPlan(t.id, level).catchError((_) {}),
-        onUpdateStatus: (s) => widget.db.updateTenantStatus(t.id, s).catchError((_) {}),
+        onUpdatePlan: (level) => widget.db.updateTenantPlan(t.id, level).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }),
+        onUpdateStatus: (s) => widget.db.updateTenantStatus(t.id, s).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }),
       )),
       onViewOnboarding: () => _push(OnboardingQueueScreen(
         submissions: _onboarding,
-        onApprove: (id, data, planLevel) => widget.db.approveOnboarding(id, data, planLevel).catchError((_) {}),
-        onReject: (id) => widget.db.rejectOnboarding(id).catchError((_) {}),
+        onApprove: (id, data, planLevel) => widget.db.approveOnboarding(id, data, planLevel).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }),
+        onReject: (id) => widget.db.rejectOnboarding(id).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }),
       )),
       onSignOut: () => widget.auth.signOut(),
       onResetDatabase: _resetDatabase,
@@ -433,28 +549,64 @@ class _QCutHomeState extends State<QCutHome> {
       if (_serving.isNotEmpty) {
         final done = _serving.first.copyWith(status: 'completed');
         _completed.insert(0, done); _serving.clear();
-        widget.db.addToken(_tenantId, done).catchError((_) {});
+        widget.db.addToken(_tenantId, done).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
       }
       if (_waiting.isNotEmpty) {
         final next = _waiting.first.copyWith(status: 'serving');
         _serving.add(next); _waiting.removeAt(0);
-        widget.db.addToken(_tenantId, next).catchError((_) {});
+        widget.db.addToken(_tenantId, next).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
       }
     });
   }
 
   void _complete(TokenEntry t) {
-    setState(() { _serving.remove(t); final done = t.copyWith(status: 'completed'); _completed.insert(0, done); widget.db.addToken(_tenantId, done).catchError((_) {}); _autoNext(); });
+    setState(() { _serving.remove(t); final done = t.copyWith(status: 'completed'); _completed.insert(0, done); widget.db.addToken(_tenantId, done).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }); _autoNext(); });
   }
   void _noShow(TokenEntry t) {
-    setState(() { _serving.remove(t); final ns = t.copyWith(status: 'no-show'); _completed.insert(0, ns); widget.db.addToken(_tenantId, ns).catchError((_) {}); _autoNext(); });
+    setState(() { _serving.remove(t); final ns = t.copyWith(status: 'no-show'); _completed.insert(0, ns); widget.db.addToken(_tenantId, ns).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }); _autoNext(); });
   }
   void _cancel(TokenEntry t) {
-    setState(() { _waiting.remove(t); final c = t.copyWith(status: 'cancelled'); _completed.insert(0, c); widget.db.addToken(_tenantId, c).catchError((_) {}); });
+    setState(() { _waiting.remove(t); final c = t.copyWith(status: 'cancelled'); _completed.insert(0, c); widget.db.addToken(_tenantId, c).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        }); });
   }
   void _autoNext() {
     if (_serving.isEmpty && _waiting.isNotEmpty) {
-      final next = _waiting.first.copyWith(status: 'serving'); _serving.add(next); _waiting.removeAt(0); widget.db.addToken(_tenantId, next).catchError((_) {});
+      final next = _waiting.first.copyWith(status: 'serving'); _serving.add(next); _waiting.removeAt(0); widget.db.addToken(_tenantId, next).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
     }
   }
 
@@ -472,7 +624,13 @@ class _QCutHomeState extends State<QCutHome> {
       createdAt: DateTime.now(),
     );
     setState(() => _waiting.add(token));
-    widget.db.addToken(_tenantId, token).catchError((_) {});
+    widget.db.addToken(_tenantId, token).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
 
   void _cancelBooking(Booking b) {
@@ -480,41 +638,89 @@ class _QCutHomeState extends State<QCutHome> {
       final i = _bookings.indexOf(b);
       _bookings[i] = Booking(id: b.id, tenantId: b.tenantId, customerName: b.customerName, phoneNumber: b.phoneNumber, barberId: b.barberId, barberName: b.barberName, date: b.date, timeSlot: b.timeSlot, status: 'cancelled', serviceType: b.serviceType, bookingCode: b.bookingCode, durationMin: b.durationMin, createdAt: b.createdAt, updatedAt: DateTime.now());
     });
-    widget.db.updateBookingStatus(_tenantId, b.id, 'cancelled').catchError((_) {});
+    widget.db.updateBookingStatus(_tenantId, b.id, 'cancelled').catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
   void _addBooking(Booking b) {
     setState(() => _bookings.insert(0, b));
-    widget.db.addBooking(_tenantId, b).catchError((_) {});
+    widget.db.addBooking(_tenantId, b).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
 
   void _addBarber(String name) {
     final b = Barber(id: 'b${DateTime.now().millisecondsSinceEpoch}', name: name, order: _barbers.length);
     setState(() => _barbers.add(b));
-    widget.db.addBarber(_tenantId, b).catchError((_) {});
+    widget.db.addBarber(_tenantId, b).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
   void _toggleBarber(Barber b) {
     final u = Barber(id: b.id, name: b.name, isActive: !b.isActive, photoURL: b.photoURL, order: b.order, scheduleStart: b.scheduleStart, scheduleEnd: b.scheduleEnd, serviceIds: b.serviceIds);
     setState(() { final i = _barbers.indexOf(b); _barbers[i] = u; });
-    widget.db.updateBarber(_tenantId, u).catchError((_) {});
+    widget.db.updateBarber(_tenantId, u).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
   void _deleteBarber(String id) {
     setState(() => _barbers.removeWhere((b) => b.id == id));
-    widget.db.deleteBarber(_tenantId, id).catchError((_) {});
+    widget.db.deleteBarber(_tenantId, id).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
 
   void _saveSettings(Tenant updated) {
     setState(() => _tenant = updated);
     // Persist to Firestore
-    widget.db.saveTenantDoc(_tenantId, updated).catchError((_) {});
+    widget.db.saveTenantDoc(_tenantId, updated).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
 
   void _addService(Service s) {
     setState(() => _services.add(s));
-    widget.db.addService(_tenantId, s).catchError((_) {});
+    widget.db.addService(_tenantId, s).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
   void _deleteService(String id) {
     setState(() => _services.removeWhere((s) => s.id == id));
-    widget.db.deleteService(_tenantId, id).catchError((_) {});
+    widget.db.deleteService(_tenantId, id).catchError((e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Save failed: $e'), backgroundColor: QCutColors.error),
+            );
+          }
+        });
   }
 
   void _push(Widget screen) => Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
@@ -552,7 +758,7 @@ class _QCutHomeState extends State<QCutHome> {
           completedCount: _completed.length,
           onOpenQueue: () => _push(TokenQueueScreen(serving: _serving, waiting: _waiting, completed: _completed, onCallNext: _callNext, onComplete: _complete, onNoShow: _noShow, onCancel: _cancel)),
           onOpenBookings: () => _canUseAppointments
-              ? _push(MyBookingsScreen(bookings: _bookings, onCancel: _cancelBooking, onNewBooking: () => _push(BookingScreen(barbers: _barbers, services: _services, tenantId: _tenantId, tenantName: _tenant!.name, onBook: _addBooking))))
+              ? _push(const MyBookingsScreen())
               : _showUpgradePrompt('Appointment Booking'),
           onOpenStaff: () => _push(StaffScreen(barbers: _barbers, onAdd: _addBarber, onToggle: _toggleBarber, onDelete: _deleteBarber)),
           onOpenSettings: () => _push(SettingsScreen(tenant: _tenant!, services: _services, onSave: _saveSettings, onAddService: _addService, onDeleteService: _deleteService)),

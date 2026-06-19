@@ -39,12 +39,27 @@ class ReportsScreen extends StatelessWidget {
     final now = DateTime.now();
     return List.generate(7, (i) {
       final d = now.subtract(Duration(days: 6 - i));
-      final tokensToday = 10 + i * 2 + (d.weekday == 6 ? 8 : 0) + (d.weekday == 7 ? 5 : 0);
+      final ds = '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+      final tokensToday = completedTokens.where((t) => t.date == ds).length;
+      final bookingsToday = completedBookings.where((b) => b.date == ds).length;
+      int revenue = 0;
+      for (final b in completedBookings.where((b) => b.date == ds)) {
+        final svc = services.cast<Service?>().firstWhere(
+          (s) => s!.name == b.serviceType,
+          orElse: () => null,
+        );
+        if (svc != null) {
+          revenue += svc.price;
+        }
+      }
+      if (revenue == 0 && tokensToday > 0) {
+        revenue = tokensToday * _avgTicketSize;
+      }
       return _DayStat(
         day: _dayLabel(d.weekday),
         tokens: tokensToday,
-        bookings: 3 + (d.weekday == 6 ? 4 : 0),
-        revenue: tokensToday * _avgTicketSize,
+        bookings: bookingsToday,
+        revenue: revenue,
       );
     });
   }

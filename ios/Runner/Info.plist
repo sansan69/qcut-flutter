@@ -45,6 +45,8 @@
 		<true/>
 		<key>NSCameraUsageDescription</key>
 		<string>This app needs camera access to scan shop QR codes</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>QCUT uses your location to show the nearest shops and queue wait times.</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
 		<key>UIStatusBarHidden</key>

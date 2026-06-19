@@ -40,8 +40,16 @@ service cloud.firestore {
       allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
     }
 
+    match /tenants/{tenantId}/barbers/{id} {
+      allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+    }
+
     match /tenants/{tenantId}/services/{id} {
       allow read: if isPlatformAdmin() || isProviderForTenant(tenantId) || resource.data.status == 'active';
+      allow create, update: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
+      allow delete: if (isPlatformAdmin() || isProviderForTenant(tenantId)) && request.app != null;
     }
 
     match /tenants/{tenantId}/bookings/{id} {

@@ -41,15 +41,11 @@ const setupTenant = async (
   tenantId: string,
   overrides: Record<string, unknown> = {},
 ): Promise<void> => {
-  const dayKey = new Date(date).toLocaleDateString('en-US', {
-    weekday: 'long',
-  }).toLowerCase();
   await tenantDoc(tenantId).set({
     name: 'Test Tenant',
-    appointmentsEnabled: true,
-    operatingHours: {
-      [dayKey]: {open: '09:00', close: '17:00', closed: false},
-    },
+    bookingMode: 'appointment',
+    openTime: '09:00',
+    closeTime: '17:00',
     ...overrides,
   });
 };
@@ -111,19 +107,8 @@ describe('getAvailableSlots', () => {
     expect(result.slots).not.toContain('17:00');
   });
 
-  test('returns empty when day is closed', async () => {
-    await setupTenant(tenantId, {
-      appointmentsEnabled: true,
-      operatingHours: {
-        monday: {open: '09:00', close: '17:00', closed: true},
-        tuesday: {open: '09:00', close: '17:00', closed: true},
-        wednesday: {open: '09:00', close: '17:00', closed: true},
-        thursday: {open: '09:00', close: '17:00', closed: true},
-        friday: {open: '09:00', close: '17:00', closed: true},
-        saturday: {open: '09:00', close: '17:00', closed: true},
-        sunday: {open: '09:00', close: '17:00', closed: true},
-      },
-    });
+  test('returns empty when operating hours not set', async () => {
+    await setupTenant(tenantId, {openTime: null, closeTime: null});
 
     const result = await getAvailableSlots.run(
       mockRequest({tenantId, serviceId, date}),
@@ -150,7 +135,7 @@ describe('getAvailableSlots', () => {
   });
 
   test('throws when appointments not enabled', async () => {
-    await setupTenant(tenantId, {appointmentsEnabled: false});
+    await setupTenant(tenantId, {bookingMode: 'token'});
 
     await expect(
       getAvailableSlots.run(mockRequest({tenantId, serviceId, date})),
@@ -230,7 +215,7 @@ describe('createBooking', () => {
   });
 
   test('throws when appointments not enabled', async () => {
-    await setupTenant(tenantId, {appointmentsEnabled: false});
+    await setupTenant(tenantId, {bookingMode: 'token'});
 
     await expect(
       createBooking.run(

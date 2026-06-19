@@ -6,18 +6,21 @@ import 'package:qcut_flutter/data/services/functions_service.dart';
 
 enum AppRole { customer, provider, platformAdmin, unknown }
 
+/// Resolves the signed-in user's role from Firebase custom claims and builds
+/// the matching screen via [resolveScreen]. Falls back to the landing screen
+/// when signed-out, or to [AppRole.customer] when claims can't be resolved.
 class AuthRouter extends StatefulWidget {
-  final Widget customerHome;
-  final Widget providerDashboard;
-  final Widget platformAdminDashboard;
+  /// The landing surface shown when no user is signed in.
   final Widget landingScreen;
+
+  /// Builds the screen for a resolved [AppRole]. Receives the resolved role
+  /// so the caller can route to the real owner/admin/customer UI.
+  final Widget Function(AppRole role) resolveScreen;
 
   const AuthRouter({
     super.key,
-    required this.customerHome,
-    required this.providerDashboard,
-    required this.platformAdminDashboard,
     required this.landingScreen,
+    required this.resolveScreen,
   });
 
   @override
@@ -75,15 +78,7 @@ class _AuthRouterState extends State<AuthRouter> {
             }
 
             final role = roleSnapshot.data ?? AppRole.customer;
-            switch (role) {
-              case AppRole.platformAdmin:
-                return widget.platformAdminDashboard;
-              case AppRole.provider:
-                return widget.providerDashboard;
-              case AppRole.customer:
-              case AppRole.unknown:
-                return widget.customerHome;
-            }
+            return widget.resolveScreen(role);
           },
         );
       },

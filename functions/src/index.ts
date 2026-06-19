@@ -46,3 +46,5 @@ export {
   cancelBooking,
   convertBookingToToken,
 } from './booking.js';
+
+export { enforcePlanLimits } from './planLimits.js';

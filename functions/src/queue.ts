@@ -304,9 +304,9 @@ export const noShowToken = functions.https.onCall(
       }
 
       const noShowAt = Timestamp.now();
-      tx.update(entryRef, {status: 'no_show', noShowAt});
+      tx.update(entryRef, {status: 'no-show', noShowAt});
 
-      const entry = {...data, status: 'no_show', noShowAt};
+      const entry = {...data, status: 'no-show', noShowAt};
       return {id: doc.id, entry};
     });
 

@@ -49,8 +49,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
     _addressCtrl = TextEditingController(text: widget.tenant.address);
     _upiIdCtrl = TextEditingController(text: '');
     _upiPhoneCtrl = TextEditingController(text: widget.tenant.phone);
-    _openTimeCtrl = TextEditingController(text: '09:00');
-    _closeTimeCtrl = TextEditingController(text: '21:00');
+    _openTimeCtrl = TextEditingController(text: widget.tenant.openTime ?? '09:00');
+    _closeTimeCtrl = TextEditingController(text: widget.tenant.closeTime ?? '21:00');
     _bookingMode = widget.tenant.bookingMode;
     if (widget.services.isNotEmpty) {
       _services.addAll(widget.services);
@@ -96,6 +96,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       bookingMode: _bookingMode,
       phone: _upiPhoneCtrl.text.trim(),
       address: _addressCtrl.text.trim(),
+      openTime: _openTimeCtrl.text.trim(),
+      closeTime: _closeTimeCtrl.text.trim(),
     );
     widget.onSave(updated);
     setState(() => _message = 'Settings saved successfully');
@@ -271,7 +273,18 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
       QGlassCard(
         padding: const EdgeInsets.all(20),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('UPI Payment Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: QCutColors.onSurface)),
+          Row(children: [
+            const Text('UPI Payment Details', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: QCutColors.onSurface)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: QCutColors.warning.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text('Coming Soon', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: QCutColors.warning)),
+            ),
+          ]),
           const SizedBox(height: 20),
           TextField(controller: _upiIdCtrl, decoration: _deco('UPI ID', 'shopname@bank')),
           const SizedBox(height: 16),

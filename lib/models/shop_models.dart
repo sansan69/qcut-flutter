@@ -154,6 +154,9 @@ class Tenant {
   final String? city;
   final String? openTime;
   final String? closeTime;
+  // Geo fields — optional, used to sort nearby shops by distance.
+  final double? latitude;
+  final double? longitude;
 
   Tenant({
     this.id = '', this.name = '', this.ownerEmail = '', this.businessType = 'salon',
@@ -162,9 +165,59 @@ class Tenant {
     this.ownerName, this.ownerPhone, this.createdBy,
     this.createdAt, this.configuredAt,
     this.district, this.city, this.openTime, this.closeTime,
+    this.latitude, this.longitude,
   });
 
   SubscriptionPlan get plan => SubscriptionPlan.fromLevel(planLevel);
+
+  /// Whether this tenant has usable coordinates for distance sorting.
+  bool get hasCoordinates => latitude != null && longitude != null;
+
+  Tenant copyWith({
+    String? id,
+    String? name,
+    String? ownerEmail,
+    String? businessType,
+    int? planLevel,
+    String? status,
+    String? bookingMode,
+    String? phone,
+    String? address,
+    String? ownerName,
+    String? ownerPhone,
+    String? createdBy,
+    DateTime? createdAt,
+    DateTime? configuredAt,
+    String? district,
+    String? city,
+    String? openTime,
+    String? closeTime,
+    double? latitude,
+    double? longitude,
+  }) {
+    return Tenant(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      ownerEmail: ownerEmail ?? this.ownerEmail,
+      businessType: businessType ?? this.businessType,
+      planLevel: planLevel ?? this.planLevel,
+      status: status ?? this.status,
+      bookingMode: bookingMode ?? this.bookingMode,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      ownerName: ownerName ?? this.ownerName,
+      ownerPhone: ownerPhone ?? this.ownerPhone,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      configuredAt: configuredAt ?? this.configuredAt,
+      district: district ?? this.district,
+      city: city ?? this.city,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+    );
+  }
 
   factory Tenant.fromMap(Map<String, dynamic> map, String id) => Tenant(
     id: id, name: map['name'] ?? '', ownerEmail: map['ownerEmail'] ?? '',
@@ -176,6 +229,7 @@ class Tenant {
     configuredAt: map['configuredAt']?.toDate(),
     district: map['district'], city: map['city'],
     openTime: map['openTime'], closeTime: map['closeTime'],
+    latitude: _toDouble(map['latitude']), longitude: _toDouble(map['longitude']),
   );
 
   Map<String, dynamic> toMap() => {
@@ -187,5 +241,15 @@ class Tenant {
     'configuredAt': configuredAt,
     'district': district, 'city': city,
     'openTime': openTime, 'closeTime': closeTime,
+    if (latitude != null) 'latitude': latitude,
+    if (longitude != null) 'longitude': longitude,
   };
+}
+
+/// Coerces Firestore numeric types (int/double/num) into a nullable double.
+double? _toDouble(dynamic v) {
+  if (v == null) return null;
+  if (v is double) return v;
+  if (v is num) return v.toDouble();
+  return null;
 }

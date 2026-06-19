@@ -1,15 +1,29 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
-import '../../services/haptic_service.dart';
-import '../../theme/app_theme.dart';
-import '../../ui/core/qcut_components.dart';
+import 'package:qcut_flutter/services/auth_service.dart';
+import 'package:qcut_flutter/services/haptic_service.dart';
+import 'package:qcut_flutter/theme/app_theme.dart';
+import 'package:qcut_flutter/ui/core/qcut_components.dart';
 
-/// Admin Login — Sign In or Register Shop.
+/// Which login surface is being shown.
+enum LoginRole { owner, customer }
+
+/// Admin / Customer Login — role-aware. Sign In (email + password) or, for
+/// owners, register a shop (onboarding); for customers, create an account.
 class LoginScreen extends StatefulWidget {
   final AuthService auth;
-  final VoidCallback? onRegisterShop; // → onboarding flow
+  final LoginRole role;
+  final VoidCallback? onRegisterShop; // owner → onboarding flow
+  final VoidCallback? onRegisterCustomer; // customer → signup screen
+  final VoidCallback? onUseGuest; // optional: continue as guest
 
-  const LoginScreen({super.key, required this.auth, this.onRegisterShop});
+  const LoginScreen({
+    super.key,
+    required this.auth,
+    this.role = LoginRole.owner,
+    this.onRegisterShop,
+    this.onRegisterCustomer,
+    this.onUseGuest,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -21,6 +35,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
   String? _error;
+
+  bool get _isCustomer => widget.role == LoginRole.customer;
 
   @override
   void dispose() {
@@ -36,6 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await widget.auth.signInWithEmail(_emailCtrl.text.trim(), _passCtrl.text);
+      // On success the auth-state listener in the router will navigate away.
+      if (mounted) setState(() => _loading = false);
     } on AuthException catch (e) {
       setState(() { _error = e.message; _loading = false; });
     } catch (e) {
@@ -54,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Form(
               key: _formKey,
               child: Column(mainAxisSize: MainAxisSize.min, children: [
-                // Logo + slogan
+                // Logo
                 Image.asset(
                   'assets/logo/logo_transparent.png',
                   height: 96,
@@ -65,9 +83,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text('Queue. Cut. Go.', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QCutColors.onSurface, letterSpacing: -0.2)),
+                Text(_isCustomer ? 'Welcome back' : 'Queue. Cut. Go.',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: QCutColors.onSurface, letterSpacing: -0.2)),
                 const SizedBox(height: 6),
-                const Text('Admin Panel', style: TextStyle(fontSize: 13, color: QCutColors.primary, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                Text(_isCustomer ? 'Customer Sign In' : 'Admin Panel',
+                    style: TextStyle(fontSize: 13, color: QCutColors.primary, fontWeight: FontWeight.w600, letterSpacing: 1)),
                 const SizedBox(height: 32),
 
                 if (_error != null)
@@ -84,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 TextFormField(
                   controller: _emailCtrl,
-                  decoration: const InputDecoration(labelText: 'Email', hintText: 'owner@shop.com', prefixIcon: Icon(Icons.email)),
+                  decoration: const InputDecoration(labelText: 'Email', hintText: 'you@example.com', prefixIcon: Icon(Icons.email)),
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) => (v == null || !v.contains('@')) ? 'Enter a valid email' : null,
                 ),
@@ -113,17 +133,32 @@ class _LoginScreenState extends State<LoginScreen> {
                 ]),
                 const SizedBox(height: 16),
 
-                Text('New to QCUT?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    widget.onRegisterShop?.call();
-                  },
-                  icon: const Icon(Icons.store, size: 18),
-                  label: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w700)),
-                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                ),
+                if (_isCustomer) ...[
+                  Text('New here?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: widget.onRegisterCustomer,
+                    icon: const Icon(Icons.person_add, size: 18),
+                    label: const Text('Create an Account', style: TextStyle(fontWeight: FontWeight.w700)),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  ),
+                  if (widget.onUseGuest != null) ...[
+                    const SizedBox(height: 10),
+                    TextButton(onPressed: widget.onUseGuest, child: const Text('Continue as guest')),
+                  ],
+                ] else ...[
+                  Text('New to QCUT?', style: TextStyle(fontSize: 14, color: QCutColors.onSurfaceVariant.withValues(alpha: 0.7))),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      widget.onRegisterShop?.call();
+                    },
+                    icon: const Icon(Icons.store, size: 18),
+                    label: const Text('Register Your Shop', style: TextStyle(fontWeight: FontWeight.w700)),
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  ),
+                ],
                 const SizedBox(height: 16),
               ]),
             ),

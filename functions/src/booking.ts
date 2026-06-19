@@ -6,25 +6,6 @@ const region = 'asia-south1';
 const callableOptions = {cors: ['qcut.co.in', 'localhost'], region};
 
 /**
- * Returns the lowercase day-of-week name for the given ISO date string.
- *
- * @param {string} dateStr - The date string in YYYY-MM-DD format.
- * @return {string} One of sunday..saturday.
- */
-function dayOfWeek(dateStr: string): string {
-  const days = [
-    'sunday',
-    'monday',
-    'tuesday',
-    'wednesday',
-    'thursday',
-    'friday',
-    'saturday',
-  ];
-  return days[new Date(dateStr).getDay()];
-}
-
-/**
  * Generates evenly spaced time slots between open and close times.
  *
  * @param {string} open - Opening time in HH:MM format.
@@ -100,16 +81,14 @@ export const getAvailableSlots = functions.https.onCall(
       throw new functions.https.HttpsError('not-found', 'Tenant not found');
     }
     const tenant = tenantDoc.data()!;
-    if (!tenant.appointmentsEnabled) {
+    if (tenant.bookingMode === 'token') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Appointments not enabled',
       );
     }
 
-    const dayKey = dayOfWeek(date);
-    const hours = tenant.operatingHours?.[dayKey];
-    if (!hours || hours.closed) {
+    if (!tenant.openTime || !tenant.closeTime) {
       return {slots: []};
     }
 
@@ -122,7 +101,7 @@ export const getAvailableSlots = functions.https.onCall(
     }
     const duration = serviceDoc.data()?.durationMinutes ?? 30;
 
-    const allSlots = generateSlots(hours.open, hours.close, duration);
+    const allSlots = generateSlots(tenant.openTime, tenant.closeTime, duration);
 
     let bookingsQuery: admin.firestore.Query = admin
       .firestore()
@@ -155,6 +134,7 @@ export const createBooking = functions.https.onCall(
       date,
       timeSlot,
       staffId,
+      serviceType: requestServiceType,
     } = request.data;
 
     const tenantDoc = await admin
@@ -164,12 +144,36 @@ export const createBooking = functions.https.onCall(
     if (!tenantDoc.exists) {
       throw new functions.https.HttpsError('not-found', 'Tenant not found');
     }
-    if (!tenantDoc.data()!.appointmentsEnabled) {
+    if (tenantDoc.data()!.bookingMode === 'token') {
       throw new functions.https.HttpsError(
         'failed-precondition',
         'Appointments not enabled',
       );
     }
+
+    let barberName: string | null = null;
+    if (staffId) {
+      const barberDoc = await admin
+        .firestore()
+        .doc(`tenants/${tenantId}/barbers/${staffId}`)
+        .get();
+      if (barberDoc.exists) {
+        barberName = barberDoc.data()!.name ?? null;
+      }
+    }
+
+    let serviceType: string | null = requestServiceType ?? null;
+    if (!serviceType) {
+      const svcDoc = await admin
+        .firestore()
+        .doc(`tenants/${tenantId}/services/${serviceId}`)
+        .get();
+      if (svcDoc.exists) {
+        serviceType = svcDoc.data()!.name ?? null;
+      }
+    }
+
+    const bookingCode = 'QCUT-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
     let existingQuery: admin.firestore.Query = admin
       .firestore()
@@ -199,6 +203,9 @@ export const createBooking = functions.https.onCall(
       customerPhone,
       serviceId,
       staffId: staffId ?? null,
+      barberName,
+      serviceType,
+      bookingCode,
       date,
       timeSlot,
       status: 'confirmed',

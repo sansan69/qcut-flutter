@@ -202,7 +202,7 @@ describe('noShowToken', () => {
       mockRequest({tenantId, entryId: entry.id}),
     );
 
-    expect(result.entry.status).toBe('no_show');
+    expect(result.entry.status).toBe('no-show');
     expect(result.entry.noShowAt).toBeInstanceOf(
       admin.firestore.Timestamp,
     );

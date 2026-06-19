@@ -6,6 +6,9 @@ class LocalNotificationService {
   LocalNotificationService([FlutterLocalNotificationsPlugin? plugin])
       : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
 
+  static final LocalNotificationService instance =
+      LocalNotificationService();
+
   Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings();
