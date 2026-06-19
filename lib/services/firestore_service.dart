@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/token_entry.dart';
 import '../models/booking.dart';
 import '../models/shop_models.dart';
+import 'slug_utils.dart';
 
 /// Central Firestore data layer — all CRUD for Q-CUT
 class FirestoreService {
@@ -154,6 +155,7 @@ class FirestoreService {
     String phone = '',
     String businessType = 'salon',
   }) async {
+    final slug = generateSlug(name);
     final doc = await _db.collection('tenants').add({
       'name': name,
       'ownerEmail': ownerEmail,
@@ -166,6 +168,7 @@ class FirestoreService {
       'openTime': '09:00',
       'closeTime': '21:00',
       'address': '',
+      'slug': slug,
       'createdAt': FieldValue.serverTimestamp(),
       'configuredAt': FieldValue.serverTimestamp(),
     });
@@ -210,8 +213,10 @@ class FirestoreService {
 
   /// Create a new tenant (super admin action)
   Future<String> createTenant(Map<String, dynamic> data) async {
+    final name = data['name'] as String? ?? 'New Shop';
     final doc = await _db.collection('tenants').add({
       ...data,
+      'slug': generateSlug(name),
       'status': 'active',
       'createdAt': FieldValue.serverTimestamp(),
     });

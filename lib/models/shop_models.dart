@@ -155,6 +155,7 @@ class Tenant {
   final String? city;
   final String? openTime;
   final String? closeTime;
+  final String? slug;
   // Geo fields — optional, used to sort nearby shops by distance.
   final double? latitude;
   final double? longitude;
@@ -166,6 +167,7 @@ class Tenant {
     this.ownerName, this.ownerPhone, this.createdBy,
     this.createdAt, this.configuredAt,
     this.district, this.city, this.openTime, this.closeTime,
+    this.slug,
     this.latitude, this.longitude,
   });
 
@@ -193,6 +195,7 @@ class Tenant {
     String? city,
     String? openTime,
     String? closeTime,
+    String? slug,
     double? latitude,
     double? longitude,
   }) {
@@ -215,6 +218,7 @@ class Tenant {
       city: city ?? this.city,
       openTime: openTime ?? this.openTime,
       closeTime: closeTime ?? this.closeTime,
+      slug: slug ?? this.slug,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
     );
@@ -230,6 +234,7 @@ class Tenant {
     configuredAt: map['configuredAt']?.toDate(),
     district: map['district'], city: map['city'],
     openTime: map['openTime'], closeTime: map['closeTime'],
+    slug: map['slug'],
     latitude: _toDouble(map['latitude']), longitude: _toDouble(map['longitude']),
   );
 
@@ -242,6 +247,7 @@ class Tenant {
     'configuredAt': configuredAt,
     'district': district, 'city': city,
     'openTime': openTime, 'closeTime': closeTime,
+    if (slug != null) 'slug': slug,
     if (latitude != null) 'latitude': latitude,
     if (longitude != null) 'longitude': longitude,
   };

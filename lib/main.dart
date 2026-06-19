@@ -19,6 +19,7 @@ import 'services/firestore_service.dart';
 import 'services/permission_service.dart';
 import 'services/preferences_service.dart';
 import 'services/secure_storage_service.dart';
+import 'services/slug_utils.dart';
 import 'screens/landing/landing_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/auth/login_screen.dart';
@@ -732,9 +733,8 @@ class _QCutHomeState extends State<QCutHome> {
   Future<void> _signOut() async => widget.auth.signOut();
 
   String get _bookingUrl {
-    final name = _tenant?.name ?? 'my-shop';
-    final slug = name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-').replaceAll(RegExp(r'-+'), '-').replaceAll(RegExp(r'^-|-$'), '');
-    return 'https://qcut.in/$slug';
+    final slug = _tenant?.slug ?? generateSlug(_tenant?.name ?? 'my-shop');
+    return '$qcutBookingBaseUrl/s/$slug';
   }
 
   void _showUpgradePrompt(String feature) {

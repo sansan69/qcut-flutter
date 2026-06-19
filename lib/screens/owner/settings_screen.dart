@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/shop_models.dart';
+import '../../services/slug_utils.dart';
 import '../../theme/app_theme.dart';
 import '../../ui/core/qcut_components.dart';
 
@@ -80,8 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> with SingleTickerProvid
   }
 
   String get _bookingLink {
-    final slug = _nameCtrl.text.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '-').replaceAll(RegExp(r'-+'), '-').replaceAll(RegExp(r'^-|-$'), '');
-    return slug.isNotEmpty ? 'https://qcut.in/$slug' : 'Enter a shop name to generate booking link';
+    final slug = widget.tenant.slug ?? generateSlug(widget.tenant.name);
+    return slug.isNotEmpty ? '$qcutBookingBaseUrl/s/$slug' : 'Enter a shop name to generate booking link';
   }
 
   void _save() {
