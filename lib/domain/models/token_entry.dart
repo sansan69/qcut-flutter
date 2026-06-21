@@ -38,7 +38,7 @@ class TokenEntry {
   factory TokenEntry.fromMap(Map<String, dynamic> map, String id) {
     return TokenEntry(
       id: id,
-      tokenNumber: map['tokenNumber'] as int? ?? 0,
+      tokenNumber: (map['tokenNumber'] as num?)?.toInt() ?? 0,
       status: _parseStatus(map['status'] as String? ?? 'waiting'),
       customerName: map['customerName'] as String? ?? '',
       customerPhone: map['customerPhone'] as String? ?? '',
@@ -49,7 +49,7 @@ class TokenEntry {
       calledAt: (map['calledAt'] as Timestamp?)?.toDate(),
       completedAt: (map['completedAt'] as Timestamp?)?.toDate(),
       noShowAt: (map['noShowAt'] as Timestamp?)?.toDate(),
-      estimatedWaitMinutes: map['estimatedWaitMinutes'] as int? ?? 0,
+      estimatedWaitMinutes: (map['estimatedWaitMinutes'] as num?)?.toInt() ?? 0,
       source: map['source'] as String? ?? 'walk_in',
     );
   }

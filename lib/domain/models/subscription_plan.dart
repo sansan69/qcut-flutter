@@ -23,9 +23,9 @@ class SubscriptionPlan {
     return SubscriptionPlan(
       id: id,
       name: map['name'] as String? ?? '',
-      price: map['price'] as int? ?? 0,
-      maxServices: map['maxServices'] as int? ?? 0,
-      maxStaff: map['maxStaff'] as int? ?? 0,
+      price: (map['price'] as num?)?.toInt() ?? 0,
+      maxServices: (map['maxServices'] as num?)?.toInt() ?? 0,
+      maxStaff: (map['maxStaff'] as num?)?.toInt() ?? 0,
       appointmentsEnabled: map['appointmentsEnabled'] as bool? ?? false,
       qrCodeEnabled: map['qrCodeEnabled'] as bool? ?? false,
       customTimeSlots: map['customTimeSlots'] as bool? ?? false,

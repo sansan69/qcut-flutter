@@ -240,6 +240,12 @@ class _RoleShellState extends State<RoleShell> {
   }
 
   @override
+  void dispose() {
+    _auth.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     // No user yet (shouldn't happen — AuthRouter only builds us when signed

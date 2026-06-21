@@ -68,6 +68,7 @@ class _CreateTenantScreenState extends State<CreateTenantScreen> {
 
       if (!mounted) return;
       final data = result as Map<String, dynamic>;
+      setState(() => _saving = false);
       _showCredentials(
         email: data['email'] as String,
         password: data['password'] as String,

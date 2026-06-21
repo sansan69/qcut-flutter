@@ -61,13 +61,16 @@ class _WebBookingPageState extends State<WebBookingPage> {
           .limit(1)
           .get();
       if (snap.docs.isEmpty) {
+        if (!mounted) return;
         setState(() { _loading = false; _error = 'Shop not found'; });
         return;
       }
       final tenant = Tenant.fromMap(snap.docs.first.data(), snap.docs.first.id);
+      if (!mounted) return;
       setState(() { _tenant = tenant; });
       await _loadServices(tenant.id);
     } catch (e) {
+      if (!mounted) return;
       setState(() { _error = e.toString(); _loading = false; });
     }
   }
@@ -80,8 +83,10 @@ class _WebBookingPageState extends State<WebBookingPage> {
           .where('isActive', isEqualTo: true)
           .get();
       final services = snap.docs.map((d) => Service.fromMap(d.data(), d.id)).toList();
+      if (!mounted) return;
       setState(() { _services = services; _loading = false; });
     } catch (e) {
+      if (!mounted) return;
       setState(() { _loading = false; });
     }
   }
@@ -96,8 +101,10 @@ class _WebBookingPageState extends State<WebBookingPage> {
         serviceId: _selectedService!.id,
         date: date,
       );
+      if (!mounted) return;
       setState(() { _timeSlots = slots; _loadingSlots = false; });
     } catch (e) {
+      if (!mounted) return;
       setState(() { _timeSlots = []; _loadingSlots = false; });
     }
   }
@@ -116,8 +123,10 @@ class _WebBookingPageState extends State<WebBookingPage> {
         date: date,
         timeSlot: _selectedSlot!,
       );
+      if (!mounted) return;
       setState(() { _submitting = false; _success = true; });
     } catch (e) {
+      if (!mounted) return;
       setState(() { _submitting = false; _bookingError = e.toString(); });
     }
   }

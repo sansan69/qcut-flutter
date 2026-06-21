@@ -85,6 +85,7 @@ class PermissionService {
 
         case PermissionStatus.denied:
           // Show rationale before prompting
+          if (!context.mounted) break;
           final shouldRequest = await _showRationale(context, p);
           if (shouldRequest == true) {
             final result = await p.permission.request();

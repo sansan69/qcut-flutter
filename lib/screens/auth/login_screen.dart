@@ -126,8 +126,10 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.of(context).popUntil((r) => r.isFirst);
       }
     } on AuthException catch (e) {
+      if (!mounted) return;
       setState(() { _error = e.message; _loading = false; });
     } catch (e) {
+      if (!mounted) return;
       setState(() { _error = 'Something went wrong. Try again.'; _loading = false; });
     }
   }

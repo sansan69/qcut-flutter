@@ -87,9 +87,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         }
       }
       await FirestoreService().submitOnboarding(_form.toMap());
+      if (!mounted) return;
       setState(() => _loading = false);
     } catch (e) {
       debugPrint('Onboarding submit error: $e');
+      if (!mounted) return;
       setState(() => _loading = false);
     }
   }
