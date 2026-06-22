@@ -161,7 +161,7 @@ class _ShopBrowserScreenState extends State<ShopBrowserScreen> {
                     child: const Text('Back'),
                   ),
                 )
-              : const SizedBox(), // resolved → flow pushed
+              : const Center(child: Text('No shops available', style: TextStyle(color: QCutColors.onSurfaceVariant))), // resolved → flow pushed
     );
   }
 }

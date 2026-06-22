@@ -203,7 +203,17 @@ class _WebBookingPageState extends State<WebBookingPage> {
       backgroundColor: QCutColors.surface,
       appBar: AppBar(
         title: const QLogoHeader(height: 28, showText: false),
-        actions: [TextButton(onPressed: () {}, child: const Text('Help'))],
+        actions: [TextButton(onPressed: () {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: QCutColors.surfaceContainerHigh,
+              title: const Text('Help', style: TextStyle(color: QCutColors.onSurface)),
+              content: const Text('Select a service, date, and time slot. Enter your name and 10-digit phone number. You will receive a confirmation once booked.', style: TextStyle(color: QCutColors.onSurfaceVariant)),
+              actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Got it'))],
+            ),
+          );
+        }, child: const Text('Help'))],
       ),
       body: ListView(padding: EdgeInsets.zero, children: [
         Container(

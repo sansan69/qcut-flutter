@@ -49,18 +49,18 @@ service cloud.firestore {
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Token queue entries (public create, admin/provider manage) ──
+    // ── Token queue entries (App Check required for public create) ──
     match /tenants/{tenantId}/tokens/{date}/entries/{entryId} {
       allow read: if true;
-      allow create: if true;  // anyone can join queue
+      allow create: if request.app != null;  // App Check required for public writes
       allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
       allow delete: if isPlatformAdmin();
     }
 
-    // ── Bookings (public create, admin/provider manage) ──
+    // ── Bookings (App Check required for public create) ──
     match /tenants/{tenantId}/bookings/{id} {
       allow read: if true;
-      allow create: if true;  // anyone can book
+      allow create: if request.app != null;  // App Check required for public writes
       allow update: if isPlatformAdmin() || isProviderForTenant(tenantId);
       allow delete: if isPlatformAdmin();
     }
@@ -80,7 +80,7 @@ service cloud.firestore {
 
     // ── Onboarding submissions (public create, admin review) ──
     match /onboarding_submissions/{id} {
-      allow create: if true;  // anyone can submit onboarding
+      allow create: if request.app != null;  // App Check required, no anonymous spam
       allow read, update, delete: if isPlatformAdmin();
     }
 

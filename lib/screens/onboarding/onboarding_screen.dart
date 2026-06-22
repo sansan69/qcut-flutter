@@ -93,6 +93,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       debugPrint('Onboarding submit error: $e');
       if (!mounted) return;
       setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Submission failed: ${e.toString().replaceFirst("Exception: ", "")}'), backgroundColor: QCutColors.error),
+      );
     }
   }
 
@@ -181,7 +184,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 1: return _OwnerStep(form: _form, errors: _errors);
       case 2: return _OperationsStep(form: _form);
       case 3: return _ReviewStep(form: _form, errors: _errors);
-      default: return const SizedBox();
+      default: return const Center(child: Text('Something went wrong', style: TextStyle(color: QCutColors.onSurfaceVariant)));
     }
   }
 }

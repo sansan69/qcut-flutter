@@ -160,7 +160,7 @@ class _BookingScreenState extends State<BookingScreen> {
       case 2: return _BarberStep(barbers: widget.barbers, selected: _selectedBarber, onSelect: (b) => setState(() => _selectedBarber = b));
       case 3: return _DetailsStep(formKey: _formKey, nameCtrl: _nameCtrl, phoneCtrl: _phoneCtrl, onChanged: () => setState(() {}));
       case 4: return _SummaryStep(service: _selectedService!.name, date: _formatDate(_selectedDate!), time: _selectedTimeSlot!, barber: _selectedBarber!.name, duration: _selectedService!.durationMin, name: _nameCtrl.text.trim(), phone: _phoneCtrl.text.trim());
-      default: return const SizedBox();
+      default: return const Center(child: Text('Something went wrong', style: TextStyle(color: QCutColors.onSurfaceVariant)));
     }
   }
 
